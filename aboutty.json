@@ -1,0 +1,170 @@
+{
+  "$schema": "./schema/aboutty.schema.json",
+  "title": "aboutty repository",
+  "username": "github",
+  "hostname": "aboutty",
+  "prompt": "$",
+  "width": 860,
+  "padding": 24,
+  "fontSize": 14,
+  "lineHeight": 22,
+  "loop": true,
+  "stepIntervalMs": 28,
+  "theme": {
+    "background": "#101418",
+    "border": "#2a3138",
+    "title": "#d7dee6",
+    "username": "#6ee7b7",
+    "hostname": "#93c5fd",
+    "separator": "#8bd5ca",
+    "prompt": "#6ee7b7",
+    "text": "#f8fafc",
+    "command": "#f8fafc",
+    "output": "#cbd5e1"
+  },
+  "steps": [
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": [
+        {
+          "color": "#6ee7b7",
+          "value": "      ___.                  __    __          \n_____ \\_ |__   ____  __ ___/  |__/  |_ ___.__.\n\\__  \\ | __ \\ /  _ \\|  |  \\   __\\   __<   |  |\n / __ \\| \\_\\ (  <_> )  |  /|  |  |  |  \\___  |\n(____  /___  /\\____/|____/ |__|  |__|  / ____|\n     \\/    \\/                          \\/     "
+        }
+      ]
+    },
+    {
+      "type": "command",
+      "text": "gh repo view pbandj082/aboutty --json stargazerCount,forkCount"
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": [
+        {
+          "value": "repository     ",
+          "color": "#94a3b8"
+        },
+        {
+          "value": "pbandj082/aboutty\n",
+          "color": "#93c5fd",
+          "bold": true
+        },
+        {
+          "value": "stars          ",
+          "color": "#94a3b8"
+        },
+        {
+          "value": "0\n",
+          "color": "#facc15",
+          "bold": true
+        },
+        {
+          "value": "forks          ",
+          "color": "#94a3b8"
+        },
+        {
+          "value": "0\n",
+          "color": "#c084fc",
+          "bold": true
+        },
+        {
+          "value": "open items     ",
+          "color": "#94a3b8"
+        },
+        {
+          "value": "0\n",
+          "color": "#fb7185",
+          "bold": true
+        },
+        {
+          "value": "commits        ",
+          "color": "#94a3b8"
+        },
+        {
+          "value": "5\n",
+          "color": "#6ee7b7",
+          "bold": true
+        },
+        {
+          "value": "default branch ",
+          "color": "#94a3b8"
+        },
+        {
+          "value": "main\n",
+          "color": "#93c5fd",
+          "bold": true
+        },
+        {
+          "value": "license        ",
+          "color": "#94a3b8"
+        },
+        {
+          "value": "MIT\n",
+          "color": "#f8fafc",
+          "bold": true
+        },
+        {
+          "value": "@aboutty/core  ",
+          "color": "#94a3b8"
+        },
+        {
+          "value": "v0.1.0\n",
+          "color": "#6ee7b7",
+          "bold": true
+        },
+        {
+          "value": "@aboutty/cli   ",
+          "color": "#94a3b8"
+        },
+        {
+          "value": "v0.1.0\n",
+          "color": "#6ee7b7",
+          "bold": true
+        },
+        {
+          "value": "action         ",
+          "color": "#94a3b8"
+        },
+        {
+          "value": "action-v0.1.0\n",
+          "color": "#6ee7b7",
+          "bold": true
+        },
+        {
+          "value": "updated        ",
+          "color": "#94a3b8"
+        },
+        {
+          "value": "2026-06-23T19:55:21Z",
+          "color": "#94a3b8",
+          "bold": true
+        }
+      ]
+    },
+    {
+      "type": "command",
+      "text": "aboutty aboutty.json --out assets/aboutty.svg"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "value": "Rendering README terminal SVG"
+        },
+        {
+          "value": "...",
+          "repeat": 3,
+          "repeatDelayMs": 280,
+          "typingIntervalMs": 160,
+          "color": "#6ee7b7"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "Generated assets/aboutty.svg"
+    }
+  ]
+}

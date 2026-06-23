@@ -13,6 +13,7 @@
     "release": "pnpm build && changeset publish",
     "test": "pnpm --filter @aboutty/core test",
     "typecheck": "pnpm --filter @aboutty/core typecheck && pnpm --filter @aboutty/cli typecheck && pnpm --filter aboutty-action typecheck && pnpm --filter @aboutty/deploy-irys typecheck && pnpm --filter @aboutty/studio typecheck",
+    "update:readme-svg": "tsx scripts/update-readme-aboutty.ts",
     "version:packages": "changeset version",
     "deploy:irys": "pnpm --filter @aboutty/deploy-irys run deploy"
   },
