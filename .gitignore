@@ -6,6 +6,10 @@ dist/
 *.log
 .env
 .env.*
+!.env.example
 coverage/
 *.tsbuildinfo
 examples/*.svg
+*-id.txt
+*-manifest.csv
+*-manifest.json
