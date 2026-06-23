@@ -1,6 +1,6 @@
 {
   "name": "@aboutty/cli",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "type": "module",
   "description": "Command line interface for generating aboutty SVG files.",
   "license": "MIT",
@@ -16,7 +16,9 @@
   "bin": {
     "aboutty": "./dist/index.js"
   },
-  "files": ["dist"],
+  "files": [
+    "dist"
+  ],
   "publishConfig": {
     "access": "public",
     "provenance": true
