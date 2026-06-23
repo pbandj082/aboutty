@@ -1,0 +1,4 @@
+interface:
+  display_name: "Git Commit"
+  short_description: "Commit changes with clear Git hygiene"
+  default_prompt: "Use $git-commit to review changes and create a clean conventional commit."

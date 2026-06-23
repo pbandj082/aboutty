@@ -1,0 +1,82 @@
+{
+  "$schema": "../schema/aboutty.schema.json",
+  "title": "git workflow",
+  "username": "docs",
+  "hostname": "repo",
+  "prompt": "$",
+  "stepIntervalMs": 30,
+  "theme": {
+    "background": "#111111",
+    "username": "#facc15",
+    "hostname": "#fb923c",
+    "separator": "#f97316",
+    "prompt": "#f97316",
+    "text": "#f8fafc"
+  },
+  "steps": [
+    {
+      "type": "command",
+      "text": "git status --short"
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": [
+        {
+          "value": " M ",
+          "color": "#facc15"
+        },
+        {
+          "value": "README.md\n",
+          "color": "#f8fafc"
+        },
+        {
+          "value": "?? ",
+          "color": "#38bdf8"
+        },
+        {
+          "value": "examples/profile.json",
+          "color": "#f8fafc"
+        }
+      ]
+    },
+    {
+      "type": "command",
+      "text": "git switch -c docs/readme-animation"
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "Switched to a new branch 'docs/readme-animation'"
+    },
+    {
+      "type": "command",
+      "text": "git add README.md examples/profile.json"
+    },
+    {
+      "type": "command",
+      "text": "git commit -m \"docs: add aboutty README animation\""
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "value": "[docs/readme-animation 3f8a2c1] docs: add aboutty README animation\n",
+          "color": "#a7f3d0"
+        },
+        {
+          "value": " 2 files changed, 48 insertions(+)"
+        }
+      ]
+    },
+    {
+      "type": "command",
+      "text": "git push -u origin docs/readme-animation"
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "Create a pull request for docs/readme-animation"
+    }
+  ]
+}

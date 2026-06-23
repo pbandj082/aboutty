@@ -1,0 +1,16 @@
+{
+  "name": "aboutty-action",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "GitHub Action for generating aboutty SVG files.",
+  "scripts": {
+    "build": "pnpm --filter @aboutty/core build && rm -rf dist tsconfig.tsbuildinfo && esbuild src/index.ts --bundle --platform=node --target=node24 --format=cjs --outfile=dist/index.cjs",
+    "typecheck": "pnpm --filter @aboutty/core build && tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@aboutty/core": "workspace:*",
+    "@actions/core": "^3.0.1"
+  }
+}

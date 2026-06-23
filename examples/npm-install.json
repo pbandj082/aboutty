@@ -1,0 +1,30 @@
+{
+  "$schema": "../schema/aboutty.schema.json",
+  "title": "install",
+  "username": "pbandj082",
+  "hostname": "aboutty",
+  "prompt": "$",
+  "stepIntervalMs": 35,
+  "theme": {
+    "background": "#101418",
+    "username": "#6ee7b7",
+    "hostname": "#93c5fd",
+    "separator": "#6ee7b7",
+    "text": "#f8fafc"
+  },
+  "steps": [
+    {
+      "type": "command",
+      "text": "pnpm add -D aboutty"
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 6,
+      "text": "Packages: +1\nDone"
+    },
+    {
+      "type": "command",
+      "text": "pnpm aboutty ./aboutty.json --out ./assets/aboutty.svg"
+    }
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "name": "@aboutty/core",
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Core animated terminal SVG renderer for aboutty.",
+  "license": "MIT",
+  "homepage": "https://github.com/pbandj082/aboutty#readme",
+  "bugs": {
+    "url": "https://github.com/pbandj082/aboutty/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/pbandj082/aboutty.git",
+    "directory": "packages/core"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": ["dist"],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "rm -rf dist tsconfig.tsbuildinfo && tsc -p tsconfig.json",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --dir src"
+  }
+}

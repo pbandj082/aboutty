@@ -1,0 +1,27 @@
+name: aboutty
+description: Generate an animated terminal SVG from an aboutty JSON config.
+author: pbandj082
+inputs:
+  config:
+    description: Path to the aboutty JSON config file.
+    required: false
+    default: aboutty.json
+  output:
+    description: Path where the generated SVG should be written.
+    required: false
+    default: assets/aboutty.svg
+  commit:
+    description: Commit the generated SVG when it changes.
+    required: false
+    default: "false"
+  push:
+    description: Push the commit when commit is enabled.
+    required: false
+    default: "false"
+outputs:
+  svg-path:
+    description: Path to the generated SVG.
+runs:
+  using: node24
+  main: dist/index.cjs
+

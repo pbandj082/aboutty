@@ -1,0 +1,83 @@
+{
+  "$schema": "../schema/aboutty.schema.json",
+  "title": "profile",
+  "username": "aboutty",
+  "hostname": "profile",
+  "prompt": "$",
+  "stepIntervalMs": 28,
+  "theme": {
+    "background": "#0f1412",
+    "username": "#8bd5ca",
+    "hostname": "#f5c2e7",
+    "separator": "#a6e3a1",
+    "prompt": "#a6e3a1",
+    "text": "#f4f7f2"
+  },
+  "steps": [
+    {
+      "type": "command",
+      "text": "whoami"
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": [
+        {
+          "value": "name: ",
+          "color": "#a6adc8"
+        },
+        {
+          "value": "aboutty maintainer",
+          "color": "#f4f7f2",
+          "bold": true
+        }
+      ]
+    },
+    {
+      "type": "command",
+      "text": "cat ./profile.md"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "value": "Building terminal-flavored README animations\n",
+          "color": "#f4f7f2"
+        },
+        {
+          "value": "Stack: TypeScript, SVG, GitHub Actions\n",
+          "color": "#8bd5ca"
+        },
+        {
+          "value": "Focus: tiny dependencies, static hosting, clean docs",
+          "color": "#a6e3a1"
+        }
+      ]
+    },
+    {
+      "type": "command",
+      "text": "aboutty --profile --out ./assets/profile.svg"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "value": "Writing profile animation",
+          "color": "#f4f7f2"
+        },
+        {
+          "value": "...",
+          "repeat": 2,
+          "repeatDelayMs": 280,
+          "typingIntervalMs": 160,
+          "color": "#a6e3a1"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "Done ./assets/profile.svg"
+    }
+  ]
+}

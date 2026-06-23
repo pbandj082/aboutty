@@ -1,0 +1,74 @@
+{
+  "$schema": "../schema/aboutty.schema.json",
+  "title": "docker quickstart",
+  "username": "dev",
+  "hostname": "container-lab",
+  "prompt": "$",
+  "stepIntervalMs": 26,
+  "theme": {
+    "background": "#0b1220",
+    "username": "#7dd3fc",
+    "hostname": "#93c5fd",
+    "separator": "#38bdf8",
+    "prompt": "#38bdf8",
+    "text": "#e5eefb"
+  },
+  "steps": [
+    {
+      "type": "command",
+      "text": "docker --version"
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "Docker version 27.x"
+    },
+    {
+      "type": "command",
+      "text": "cat Dockerfile"
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 2,
+      "text": "FROM node:24-alpine\nWORKDIR /app\nCOPY package.json pnpm-lock.yaml ./\nRUN corepack enable && pnpm install --frozen-lockfile\nCOPY . .\nCMD [\"pnpm\", \"start\"]"
+    },
+    {
+      "type": "command",
+      "text": "docker build -t aboutty-demo ."
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "value": "Sending build context\n",
+          "color": "#cbd5e1"
+        },
+        {
+          "value": "Resolving layers",
+          "color": "#e5eefb"
+        },
+        {
+          "value": "...",
+          "repeat": 3,
+          "repeatDelayMs": 260,
+          "typingIntervalMs": 140,
+          "color": "#38bdf8"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "Successfully tagged aboutty-demo:latest"
+    },
+    {
+      "type": "command",
+      "text": "docker run --rm -p 3000:3000 aboutty-demo"
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "Server listening on http://localhost:3000"
+    }
+  ]
+}

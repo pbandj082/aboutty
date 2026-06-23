@@ -1,0 +1,17 @@
+{
+  "name": "@aboutty/studio",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Static aboutty configuration studio and SVG preview app.",
+  "scripts": {
+    "build": "vite build",
+    "dev": "vite --host 127.0.0.1",
+    "preview": "vite preview --host 127.0.0.1",
+    "typecheck": "pnpm --filter @aboutty/core build && tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@aboutty/core": "workspace:*"
+  }
+}

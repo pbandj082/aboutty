@@ -1,0 +1,374 @@
+{
+  "$schema": "../schema/aboutty.schema.json",
+  "title": "signal console",
+  "username": "operator",
+  "hostname": "node-07",
+  "prompt": ">",
+  "loop": true,
+  "stepIntervalMs": 18,
+  "theme": {
+    "background": "#020403",
+    "border": "#163d2a",
+    "title": "#68d391",
+    "username": "#22c55e",
+    "hostname": "#16a34a",
+    "separator": "#4ade80",
+    "prompt": "#4ade80",
+    "text": "#d1fae5",
+    "command": "#bbf7d0",
+    "output": "#86efac"
+  },
+  "steps": [
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": [
+        {
+          "value": "  ___ _                   _ \n / __(_)__ _ _ _  __ _ __| |\n \\__ \\ / _` | ' \\/ _` / _` |\n |___/_\\__, |_|_\\__,_\\__,_|\n       |___/               ",
+          "color": "#22c55e"
+        }
+      ]
+    },
+    {
+      "type": "command",
+      "text": "boot --profile ./ops/signal-console.toml"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "value": "loading modules",
+          "color": "#bbf7d0"
+        },
+        {
+          "value": "...",
+          "repeat": 3,
+          "repeatDelayMs": 180,
+          "typingIntervalMs": 80,
+          "color": "#4ade80"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "[ok] terminal renderer\n[ok] local signal cache\n[ok] read-only sandbox"
+    },
+    {
+      "type": "command",
+      "text": "install --demo modules signal-core renderer-keyframes cache-index"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "value": "fetching manifest",
+          "color": "#bbf7d0"
+        },
+        {
+          "value": "...",
+          "repeat": 3,
+          "repeatDelayMs": 180,
+          "typingIntervalMs": 80,
+          "color": "#4ade80"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "delayMs": 120,
+      "typingIntervalMs": 0,
+      "text": [
+        {
+          "value": "install [",
+          "color": "#86efac"
+        },
+        {
+          "value": "##",
+          "color": "#22c55e"
+        },
+        {
+          "value": "--------",
+          "color": "#14532d"
+        },
+        {
+          "value": "] 20%  signal-core",
+          "color": "#d1fae5"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "delayMs": 120,
+      "typingIntervalMs": 0,
+      "text": [
+        {
+          "value": "install [",
+          "color": "#86efac"
+        },
+        {
+          "value": "#####",
+          "color": "#22c55e"
+        },
+        {
+          "value": "-----",
+          "color": "#14532d"
+        },
+        {
+          "value": "] 50%  renderer-keyframes",
+          "color": "#d1fae5"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "delayMs": 120,
+      "typingIntervalMs": 0,
+      "text": [
+        {
+          "value": "install [",
+          "color": "#86efac"
+        },
+        {
+          "value": "########",
+          "color": "#22c55e"
+        },
+        {
+          "value": "--",
+          "color": "#14532d"
+        },
+        {
+          "value": "] 80%  cache-index",
+          "color": "#d1fae5"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "delayMs": 120,
+      "typingIntervalMs": 0,
+      "text": [
+        {
+          "value": "install [",
+          "color": "#86efac"
+        },
+        {
+          "value": "##########",
+          "color": "#22c55e"
+        },
+        {
+          "value": "] 100% ready",
+          "color": "#d1fae5",
+          "bold": true
+        }
+      ]
+    },
+    {
+      "type": "command",
+      "text": "verify --checksums --strict"
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": [
+        {
+          "value": "[pass] ",
+          "color": "#22c55e",
+          "bold": true
+        },
+        {
+          "value": "signal-core.sha256\n",
+          "color": "#d1fae5"
+        },
+        {
+          "value": "[pass] ",
+          "color": "#22c55e",
+          "bold": true
+        },
+        {
+          "value": "renderer-keyframes.sha256\n",
+          "color": "#d1fae5"
+        },
+        {
+          "value": "[warn] ",
+          "color": "#facc15",
+          "bold": true
+        },
+        {
+          "value": "cache-index uses local timestamp",
+          "color": "#d1fae5"
+        }
+      ]
+    },
+    {
+      "type": "command",
+      "text": "pulse --spinner --cycles 4"
+    },
+    {
+      "type": "output",
+      "delayMs": 90,
+      "typingIntervalMs": 0,
+      "text": "- syncing local buffers"
+    },
+    {
+      "type": "output",
+      "delayMs": 90,
+      "typingIntervalMs": 0,
+      "text": "\\ syncing local buffers"
+    },
+    {
+      "type": "output",
+      "delayMs": 90,
+      "typingIntervalMs": 0,
+      "text": "| syncing local buffers"
+    },
+    {
+      "type": "output",
+      "delayMs": 90,
+      "typingIntervalMs": 0,
+      "text": "/ syncing local buffers"
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "[ok] buffers synchronized"
+    },
+    {
+      "type": "command",
+      "text": "scan --local ./signals --format table --limit 8"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "value": "indexing",
+          "color": "#bbf7d0"
+        },
+        {
+          "value": "...",
+          "repeat": 4,
+          "repeatDelayMs": 180,
+          "typingIntervalMs": 90,
+          "color": "#4ade80"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "ID     SOURCE      STATUS     LATENCY\n07-A   local       clean      12ms\n07-B   archive     clean      18ms\n07-C   sandbox     clean      09ms\n07-D   mirror      queued     24ms\n07-E   cache       clean      11ms"
+    },
+    {
+      "type": "command",
+      "text": "trace --demo 07-D --explain"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "value": "trace route: ",
+          "color": "#86efac"
+        },
+        {
+          "value": "local -> parser -> renderer -> artifact\n",
+          "color": "#d1fae5"
+        },
+        {
+          "value": "mode: ",
+          "color": "#86efac"
+        },
+        {
+          "value": "read-only simulation",
+          "color": "#22c55e",
+          "bold": true
+        }
+      ]
+    },
+    {
+      "type": "command",
+      "text": "inspect --demo 07-C --segments"
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "SEGMENT    KIND       CONFIDENCE\nalpha      text       0.98\nbeta       prompt     0.97\ngamma      timing     0.94\ndelta      color      0.99"
+    },
+    {
+      "type": "command",
+      "text": "compile --target readme-svg --loop"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "value": "assembling keyframes",
+          "color": "#bbf7d0"
+        },
+        {
+          "value": "...",
+          "repeat": 4,
+          "repeatDelayMs": 220,
+          "typingIntervalMs": 90,
+          "color": "#4ade80"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "frames: 184\nloops: enabled\npayload: 31.4kb\nartifact: ./assets/signal-console.svg"
+    },
+    {
+      "type": "command",
+      "text": "decode --demo signal-07-C"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "value": "handshake: ",
+          "color": "#86efac"
+        },
+        {
+          "value": "accepted\n",
+          "color": "#22c55e",
+          "bold": true
+        },
+        {
+          "value": "payload: README animation ready",
+          "color": "#d1fae5"
+        }
+      ]
+    },
+    {
+      "type": "command",
+      "text": "report --summary --out ./reports/session.txt"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "value": "writing report",
+          "color": "#bbf7d0"
+        },
+        {
+          "value": "...",
+          "repeat": 2,
+          "repeatDelayMs": 240,
+          "typingIntervalMs": 120,
+          "color": "#4ade80"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "[saved] ./reports/session.txt\n[saved] ./assets/signal-console.svg"
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "session closed"
+    }
+  ]
+}

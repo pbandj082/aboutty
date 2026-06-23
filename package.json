@@ -1,0 +1,28 @@
+{
+  "name": "aboutty-monorepo",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "packageManager": "pnpm@10.15.1",
+  "scripts": {
+    "build": "pnpm build:packages && pnpm --filter @aboutty/studio build",
+    "build:packages": "pnpm --filter @aboutty/core build && pnpm --filter @aboutty/cli build && pnpm --filter aboutty-action build && pnpm --filter @aboutty/deploy-irys build",
+    "changeset": "changeset",
+    "dev:studio": "pnpm --filter @aboutty/studio dev",
+    "release": "pnpm build && changeset publish",
+    "test": "pnpm --filter @aboutty/core test",
+    "typecheck": "pnpm --filter @aboutty/core typecheck && pnpm --filter @aboutty/cli typecheck && pnpm --filter aboutty-action typecheck && pnpm --filter @aboutty/deploy-irys typecheck && pnpm --filter @aboutty/studio typecheck",
+    "version:packages": "changeset version",
+    "deploy:irys": "pnpm --filter @aboutty/deploy-irys run deploy"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.31.0",
+    "@types/node": "^24.0.0",
+    "esbuild": "^0.28.1",
+    "tsx": "^4.22.4",
+    "typescript": "^6.0.3",
+    "vite": "^8.0.16",
+    "vitest": "^4.1.9"
+  }
+}

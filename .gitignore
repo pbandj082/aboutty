@@ -1,0 +1,11 @@
+node_modules/
+dist/
+!packages/action/dist/
+!packages/action/dist/index.cjs
+.DS_Store
+*.log
+.env
+.env.*
+coverage/
+*.tsbuildinfo
+examples/*.svg

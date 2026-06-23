@@ -1,0 +1,20 @@
+{
+  "name": "@aboutty/deploy-irys",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Irys deployment script for the aboutty studio.",
+  "bin": {
+    "aboutty-deploy-irys": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "rm -rf dist tsconfig.tsbuildinfo && tsc -p tsconfig.json",
+    "deploy": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@irys/upload": "^0.0.15",
+    "@irys/upload-solana": "^0.1.8"
+  }
+}

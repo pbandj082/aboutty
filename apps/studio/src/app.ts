@@ -1,0 +1,294 @@
+import { renderSvg, type AbouttyConfig } from "@aboutty/core";
+import { createConfigControls } from "./controls";
+import { defaultStudioConfig } from "./default-config";
+import { downloadText, workflowTemplate } from "./downloads";
+import { iconButton } from "./icons";
+import { createPreview } from "./preview";
+
+type CodeTab = "config" | "workflow";
+
+export function mountApp(target: HTMLElement): void {
+  let currentSvg = "";
+  let currentConfig = defaultStudioConfig;
+  let currentJson = JSON.stringify(defaultStudioConfig, null, 2);
+  let currentWorkflow = workflowTemplate();
+  let activeCodeTab: CodeTab = "config";
+  let jsonParseTimer: number | undefined;
+
+  target.innerHTML = `
+    <main class="app-shell">
+      <header class="app-header">
+        <div>
+          <h1>aboutty</h1>
+        </div>
+        <a class="github-link" href="https://github.com/pbandj082/aboutty" target="_blank" rel="noreferrer" aria-label="Open aboutty on GitHub">
+          ${iconButton("github", "GitHub")}
+        </a>
+      </header>
+      <section class="workspace" aria-label="aboutty generator">
+        <div class="editor-pane">
+          <div class="pane-header">
+            <h2>Parameters</h2>
+          </div>
+          <div class="editor-scroll">
+            <div data-controls></div>
+          </div>
+          <p class="error" data-error hidden></p>
+        </div>
+        <div class="output-column">
+          <section class="preview-pane">
+            <div class="pane-header">
+              <h2>Preview</h2>
+              <button type="button" data-action="download-svg">${iconButton("download", "Download SVG")}</button>
+            </div>
+            <div class="preview-body">
+              <div class="preview-stage">
+                <div class="preview-frame" data-preview></div>
+                <div class="preview-controls">
+                  <label class="switch-label preview-loop-switch">
+                    <input type="checkbox" data-loop-toggle />
+                    <span class="switch-text">Loop</span>
+                    <span class="switch-track" aria-hidden="true"></span>
+                  </label>
+                </div>
+              </div>
+            </div>
+          </section>
+          <section class="code-pane">
+            <div class="pane-header">
+              <h2>Configuration</h2>
+            </div>
+            <div class="code-tabs-row">
+              <div class="tabs" role="tablist" aria-label="code views">
+                <button type="button" class="tab-button" data-action="select-code-tab" data-code-tab="config">aboutty.json</button>
+                <button type="button" class="tab-button" data-action="select-code-tab" data-code-tab="workflow">aboutty.yml</button>
+              </div>
+            </div>
+            <div class="code-block">
+              <div class="code-actions">
+                <button type="button" data-action="download-code" data-download-code>${iconButton("download", "Download")}</button>
+                <button type="button" data-action="copy-code" data-copy-code>${iconButton("copy", "Copy")}</button>
+              </div>
+              <textarea class="json-editor" data-json-editor spellcheck="false" aria-label="Edit aboutty.json"></textarea>
+              <pre data-code-pre><code data-code-output></code></pre>
+            </div>
+          </section>
+        </div>
+      </section>
+      <footer class="app-footer">
+        <p>Copyright 2026 pbandj082</p>
+      </footer>
+    </main>
+  `;
+
+  const errorElement = target.querySelector<HTMLElement>("[data-error]");
+  const controlsRoot = target.querySelector<HTMLElement>("[data-controls]");
+  const previewRoot = target.querySelector<HTMLElement>("[data-preview]");
+  const codeOutput = target.querySelector<HTMLElement>("[data-code-output]");
+  const codePre = target.querySelector<HTMLPreElement>("[data-code-pre]");
+  const jsonEditor = target.querySelector<HTMLTextAreaElement>("[data-json-editor]");
+  const downloadCodeButton = target.querySelector<HTMLButtonElement>("[data-download-code]");
+  const copyCodeButton = target.querySelector<HTMLButtonElement>("[data-copy-code]");
+  const loopToggle = target.querySelector<HTMLInputElement>("[data-loop-toggle]");
+  const tabButtons = target.querySelectorAll<HTMLButtonElement>("[data-code-tab]");
+
+  if (
+    !errorElement ||
+    !controlsRoot ||
+    !previewRoot ||
+    !codeOutput ||
+    !codePre ||
+    !jsonEditor ||
+    !downloadCodeButton ||
+    !copyCodeButton ||
+    !loopToggle
+  ) {
+    throw new Error("Failed to mount aboutty app.");
+  }
+
+  const errorRoot = errorElement;
+  const codeRoot = codeOutput;
+  const codePreRoot = codePre;
+  const jsonEditorRoot = jsonEditor;
+  const downloadRoot = downloadCodeButton;
+  const copyRoot = copyCodeButton;
+  const loopRoot = loopToggle;
+  const preview = createPreview(previewRoot);
+  const controls = createConfigControls(controlsRoot, currentConfig, (nextConfig) => {
+    currentConfig = nextConfig;
+    currentJson = JSON.stringify(currentConfig, null, 2);
+    renderCurrent(currentConfig);
+  });
+
+  function renderCurrent(config: AbouttyConfig): void {
+    try {
+      currentSvg = renderSvg(config);
+      preview.update(currentSvg);
+      updateCodePane();
+      syncLoopToggle(loopRoot, config);
+      errorRoot.hidden = true;
+      errorRoot.textContent = "";
+    } catch (caught) {
+      showError(caught);
+    }
+  }
+
+  function showError(caught: unknown): void {
+    errorRoot.hidden = false;
+    errorRoot.textContent = caught instanceof Error ? caught.message : String(caught);
+  }
+
+  function updateCodePane(): void {
+    currentWorkflow = workflowTemplate();
+    const isConfigTab = activeCodeTab === "config";
+
+    jsonEditorRoot.hidden = !isConfigTab;
+    codePreRoot.hidden = isConfigTab;
+
+    if (isConfigTab) {
+      if (document.activeElement !== jsonEditorRoot || jsonEditorRoot.value !== currentJson) {
+        jsonEditorRoot.value = currentJson;
+      }
+    } else {
+      codeRoot.textContent = currentWorkflow;
+    }
+
+    setButtonLabel(downloadRoot, "Download");
+
+    for (const button of tabButtons) {
+      const selected = button.dataset.codeTab === activeCodeTab;
+      button.classList.toggle("is-active", selected);
+      button.setAttribute("aria-selected", String(selected));
+    }
+  }
+
+  function applyJsonEditorValue(value: string): void {
+    try {
+      const parsedConfig = JSON.parse(value) as AbouttyConfig;
+      const nextSvg = renderSvg(parsedConfig);
+
+      currentConfig = parsedConfig;
+      currentSvg = nextSvg;
+      preview.update(currentSvg);
+      controls.update(currentConfig);
+      syncLoopToggle(loopRoot, currentConfig);
+      updateCodePane();
+      errorRoot.hidden = true;
+      errorRoot.textContent = "";
+    } catch (caught) {
+      showError(caught);
+    }
+  }
+
+  function getActiveCode(): string {
+    return activeCodeTab === "config" ? currentJson : currentWorkflow;
+  }
+
+  target.addEventListener("click", async (event) => {
+    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-action]");
+
+    if (!button) {
+      return;
+    }
+
+    if (button.dataset.action === "select-code-tab") {
+      activeCodeTab = button.dataset.codeTab === "workflow" ? "workflow" : "config";
+      updateCodePane();
+    }
+
+    if (button.dataset.action === "download-svg") {
+      downloadText("aboutty.svg", "image/svg+xml", currentSvg);
+    }
+
+    if (button.dataset.action === "download-code") {
+      if (activeCodeTab === "config") {
+        downloadText("aboutty.json", "application/json", currentJson);
+      } else {
+        downloadText("aboutty.yml", "text/yaml", currentWorkflow);
+      }
+    }
+
+    if (button.dataset.action === "copy-code") {
+      await copyText(getActiveCode());
+      setButtonLabel(copyRoot, "Copied");
+      window.setTimeout(() => {
+        setButtonLabel(copyRoot, "Copy");
+      }, 1200);
+    }
+  });
+
+  target.addEventListener("change", (event) => {
+    const element = event.target as HTMLElement;
+
+    if (!(element instanceof HTMLInputElement) || element !== loopRoot) {
+      return;
+    }
+
+    currentConfig = setLoop(currentConfig, element.checked);
+    currentJson = JSON.stringify(currentConfig, null, 2);
+    controls.update(currentConfig);
+    renderCurrent(currentConfig);
+  });
+
+  target.addEventListener("input", (event) => {
+    const element = event.target as HTMLElement;
+
+    if (!(element instanceof HTMLTextAreaElement) || element !== jsonEditorRoot) {
+      return;
+    }
+
+    currentJson = element.value;
+
+    if (jsonParseTimer !== undefined) {
+      window.clearTimeout(jsonParseTimer);
+    }
+
+    jsonParseTimer = window.setTimeout(() => {
+      jsonParseTimer = undefined;
+      applyJsonEditorValue(currentJson);
+    }, 250);
+  });
+
+  renderCurrent(currentConfig);
+}
+
+function syncLoopToggle(toggle: HTMLInputElement, config: AbouttyConfig): void {
+  toggle.checked = config.loop ?? false;
+}
+
+function setLoop(config: AbouttyConfig, enabled: boolean): AbouttyConfig {
+  if (enabled) {
+    return { ...config, loop: true };
+  }
+
+  const { loop: _loop, ...nextConfig } = config;
+  return nextConfig;
+}
+
+function setButtonLabel(button: HTMLButtonElement, label: string): void {
+  const labelElement = button.querySelector<HTMLElement>(".button-label");
+
+  if (labelElement) {
+    labelElement.textContent = label;
+    return;
+  }
+
+  button.textContent = label;
+}
+
+async function copyText(value: string): Promise<void> {
+  if (navigator.clipboard) {
+    await navigator.clipboard.writeText(value);
+    return;
+  }
+
+  const textarea = document.createElement("textarea");
+  textarea.value = value;
+  textarea.setAttribute("readonly", "");
+  textarea.style.position = "fixed";
+  textarea.style.left = "-9999px";
+  document.body.append(textarea);
+  textarea.select();
+  document.execCommand("copy");
+  textarea.remove();
+}
