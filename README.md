@@ -4,7 +4,7 @@ aboutty is an animated SVG generator for terminal-style command demos in GitHub 
 
 ![aboutty repository stats](./assets/aboutty.svg)
 
-Studio: https://gateway.irys.xyz/BLEEZ1t375uaFjkNPd3tTKSGC3TTsMzrYgpaAoKGnDdU
+Studio: https://gateway.irys.xyz/8bbYxzsNGWTszHNcZqRxhybDJTqY2wzrKYLmRP67GwX1
 
 ## Releases
 
