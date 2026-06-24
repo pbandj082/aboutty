@@ -48,4 +48,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add aboutty.json assets/aboutty.svg
           git commit -m "chore: update readme aboutty svg [skip ci]"
-          git push
+          git push origin HEAD:main
