@@ -1,6 +1,6 @@
 {
   "name": "@aboutty/update-readme-aboutty",
-  "version": "0.0.0",
+  "version": "0.0.1",
   "private": true,
   "type": "module",
   "description": "README aboutty configuration updater.",
