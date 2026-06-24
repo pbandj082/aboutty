@@ -47,6 +47,7 @@ export function renderSvg(config: AbouttyConfig): string {
         line.kind === "command"
           ? renderPromptPrefix(
               resolved,
+              line.cwd,
               line.startMs,
               animationContext
             )
@@ -83,11 +84,12 @@ export function renderSvg(config: AbouttyConfig): string {
 
 function renderPromptPrefix(
   config: ReturnType<typeof resolveConfig>,
+  cwd: string | undefined,
   startMs: number,
   animationContext: AnimationContext
 ): string {
   const animation = ` opacity="0" style="${createAppearAnimation(startMs, animationContext)}"`;
-  const parts = createPromptPrefixParts(config);
+  const parts = createPromptPrefixParts(config, cwd);
 
   return parts
     .map((part) => `<tspan fill="${part.color}"${animation}>${escapeXml(part.value)}</tspan>`)
@@ -323,7 +325,8 @@ function createSegmentAttributes(segment: AbouttyTextSegment): string[] {
 }
 
 function createPromptPrefixParts(
-  config: ReturnType<typeof resolveConfig>
+  config: ReturnType<typeof resolveConfig>,
+  cwd: string | undefined
 ): { color: string; value: string }[] {
   const parts: { color: string; value: string }[] = [];
 
@@ -331,12 +334,26 @@ function createPromptPrefixParts(
     parts.push({ color: config.theme.username, value: config.username });
   }
 
-  if (isNonEmptyString(config.username) && isNonEmptyString(config.hostname)) {
-    parts.push({ color: config.theme.separator, value: "@" });
+  if (
+    isNonEmptyString(config.username) &&
+    isNonEmptyString(config.usernameSeparator) &&
+    isNonEmptyString(config.hostname)
+  ) {
+    parts.push({ color: config.theme.usernameSeparator, value: config.usernameSeparator });
   }
 
   if (isNonEmptyString(config.hostname)) {
     parts.push({ color: config.theme.hostname, value: config.hostname });
+  }
+
+  if (isNonEmptyString(cwd)) {
+    if (isNonEmptyString(config.hostname) && isNonEmptyString(config.cwdSeparator)) {
+      parts.push({ color: config.theme.cwdSeparator, value: config.cwdSeparator });
+    } else if (parts.length > 0) {
+      parts.push({ color: config.theme.prompt, value: " " });
+    }
+
+    parts.push({ color: config.theme.cwd, value: cwd });
   }
 
   if (parts.length > 0) {

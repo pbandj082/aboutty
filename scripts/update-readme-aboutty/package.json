@@ -1,0 +1,19 @@
+{
+  "name": "@aboutty/update-readme-aboutty",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "README aboutty configuration updater.",
+  "bin": {
+    "aboutty-update-readme": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "pnpm --filter @aboutty/core build && rm -rf dist tsconfig.tsbuildinfo && tsc -p tsconfig.json",
+    "update": "tsx src/index.ts",
+    "typecheck": "pnpm --filter @aboutty/core build && tsc --noEmit -p tsconfig.json",
+    "test": "vitest run --passWithNoTests"
+  },
+  "dependencies": {
+    "@aboutty/core": "workspace:*"
+  }
+}

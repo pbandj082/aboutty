@@ -5,6 +5,7 @@
     { "path": "./packages/cli" },
     { "path": "./packages/action" },
     { "path": "./apps/studio" },
-    { "path": "./scripts/deploy-irys" }
+    { "path": "./scripts/deploy-irys" },
+    { "path": "./scripts/update-readme-aboutty" }
   ]
 }

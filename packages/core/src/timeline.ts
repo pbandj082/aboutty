@@ -3,26 +3,26 @@ import { getSegmentAnimationDurationMs, splitTextIntoLines } from "./text.js";
 
 export interface TimelineLine {
   kind: AbouttyStep["type"];
+  cwd: string | undefined;
   segments: ReturnType<typeof splitTextIntoLines>[number];
   startMs: number;
   typingIntervalMs: number;
 }
-
-const defaultDelayMs = 350;
 
 export function createTimeline(config: ResolvedAbouttyConfig): TimelineLine[] {
   let cursor = 0;
   const lines: TimelineLine[] = [];
 
   for (const step of config.steps) {
-    cursor += step.delayMs ?? defaultDelayMs;
+    cursor += step.delayMs ?? config.stepIntervalMs;
 
-    const typingIntervalMs = step.typingIntervalMs ?? config.stepIntervalMs;
+    const typingIntervalMs = step.typingIntervalMs ?? config.typingIntervalMs;
     const stepLines = splitTextIntoLines(step.text);
 
     for (const [lineIndex, segments] of stepLines.entries()) {
       lines.push({
         kind: step.type,
+        cwd: step.type === "command" ? step.cwd ?? config.cwd : undefined,
         segments,
         startMs: cursor,
         typingIntervalMs

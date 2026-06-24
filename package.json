@@ -7,13 +7,13 @@
   "packageManager": "pnpm@10.15.1",
   "scripts": {
     "build": "pnpm build:packages && pnpm --filter @aboutty/studio build",
-    "build:packages": "pnpm --filter @aboutty/core build && pnpm --filter @aboutty/cli build && pnpm --filter aboutty-action build && pnpm --filter @aboutty/deploy-irys build",
+    "build:packages": "pnpm --filter @aboutty/core build && pnpm --filter @aboutty/cli build && pnpm --filter aboutty-action build && pnpm --filter @aboutty/deploy-irys build && pnpm --filter @aboutty/update-readme-aboutty build",
     "changeset": "changeset",
     "dev:studio": "pnpm --filter @aboutty/studio dev",
     "release": "pnpm build && changeset publish",
     "test": "pnpm --filter @aboutty/core test",
-    "typecheck": "pnpm --filter @aboutty/core typecheck && pnpm --filter @aboutty/cli typecheck && pnpm --filter aboutty-action typecheck && pnpm --filter @aboutty/deploy-irys typecheck && pnpm --filter @aboutty/studio typecheck",
-    "update:readme-svg": "tsx scripts/update-readme-aboutty.ts",
+    "typecheck": "pnpm --filter @aboutty/core typecheck && pnpm --filter @aboutty/cli typecheck && pnpm --filter aboutty-action typecheck && pnpm --filter @aboutty/deploy-irys typecheck && pnpm --filter @aboutty/update-readme-aboutty typecheck && pnpm --filter @aboutty/studio typecheck",
+    "update:readme-svg": "pnpm --filter @aboutty/update-readme-aboutty run update",
     "version:packages": "changeset version",
     "deploy:irys": "pnpm --filter @aboutty/deploy-irys run deploy"
   },

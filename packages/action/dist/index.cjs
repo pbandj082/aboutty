@@ -19260,12 +19260,15 @@ var defaultTheme = {
   border: "#2a3138",
   title: "#d7dee6",
   username: "#6ee7b7",
+  usernameSeparator: "#8bd5ca",
   hostname: "#93c5fd",
-  separator: "#6ee7b7",
-  prompt: "#6ee7b7",
+  cwdSeparator: "#7dd3fc",
+  cwd: "#a7f3d0",
+  prompt: "#5eead4",
   text: "#f8fafc",
   command: "#f8fafc",
-  output: "#b8c1cc"
+  output: "#b8c1cc",
+  separator: "#8bd5ca"
 };
 var defaultConfig = {
   title: "aboutty",
@@ -19273,9 +19276,13 @@ var defaultConfig = {
   padding: 24,
   fontSize: 14,
   lineHeight: 22,
+  usernameSeparator: "@",
+  cwdSeparator: ":",
+  cwd: "~",
   prompt: "$",
   loop: false,
-  stepIntervalMs: 35,
+  stepIntervalMs: 350,
+  typingIntervalMs: 35,
   theme: defaultTheme,
   steps: []
 };
@@ -19285,6 +19292,7 @@ function resolveConfig(config) {
     ...config,
     theme: resolveTheme(config.theme),
     stepIntervalMs: config.stepIntervalMs ?? defaultConfig.stepIntervalMs,
+    typingIntervalMs: config.typingIntervalMs ?? defaultConfig.typingIntervalMs,
     steps: config.steps
   };
 }
@@ -19294,12 +19302,15 @@ function resolveTheme(theme) {
     border: theme?.border ?? defaultTheme.border,
     title: theme?.title ?? defaultTheme.title,
     username: theme?.username ?? defaultTheme.username,
+    usernameSeparator: theme?.usernameSeparator ?? theme?.separator ?? defaultTheme.usernameSeparator,
     hostname: theme?.hostname ?? defaultTheme.hostname,
-    separator: theme?.separator ?? defaultTheme.separator,
+    cwdSeparator: theme?.cwdSeparator ?? theme?.separator ?? theme?.prompt ?? defaultTheme.cwdSeparator,
+    cwd: theme?.cwd ?? theme?.prompt ?? defaultTheme.cwd,
     prompt: theme?.prompt ?? defaultTheme.prompt,
     text: theme?.text ?? defaultTheme.text,
     command: theme?.command ?? theme?.text ?? defaultTheme.command,
-    output: theme?.output ?? theme?.text ?? defaultTheme.output
+    output: theme?.output ?? theme?.text ?? defaultTheme.output,
+    separator: theme?.usernameSeparator ?? theme?.separator ?? defaultTheme.usernameSeparator
   };
 }
 
@@ -19354,17 +19365,17 @@ function getSegmentAnimationDurationMs(segment, fallbackIntervalMs) {
 }
 
 // ../core/dist/timeline.js
-var defaultDelayMs = 350;
 function createTimeline(config) {
   let cursor = 0;
   const lines = [];
   for (const step of config.steps) {
-    cursor += step.delayMs ?? defaultDelayMs;
-    const typingIntervalMs = step.typingIntervalMs ?? config.stepIntervalMs;
+    cursor += step.delayMs ?? config.stepIntervalMs;
+    const typingIntervalMs = step.typingIntervalMs ?? config.typingIntervalMs;
     const stepLines = splitTextIntoLines(step.text);
     for (const [lineIndex, segments] of stepLines.entries()) {
       lines.push({
         kind: step.type,
+        cwd: step.type === "command" ? step.cwd ?? config.cwd : void 0,
         segments,
         startMs: cursor,
         typingIntervalMs
@@ -19400,6 +19411,12 @@ function validateConfig(config) {
     if (step.typingIntervalMs !== void 0 && (!Number.isFinite(step.typingIntervalMs) || step.typingIntervalMs < 0)) {
       errors.push(`steps[${index}].typingIntervalMs must be a non-negative number`);
     }
+    if (step.cwd !== void 0 && typeof step.cwd !== "string") {
+      errors.push(`steps[${index}].cwd must be a string`);
+    }
+    if (step.type === "output" && step.cwd !== void 0) {
+      errors.push(`steps[${index}].cwd is only supported for command steps`);
+    }
   }
   for (const key of ["width", "padding", "fontSize", "lineHeight"]) {
     const value = config[key];
@@ -19407,13 +19424,22 @@ function validateConfig(config) {
       errors.push(`${key} must be a positive number`);
     }
   }
-  for (const key of ["stepIntervalMs"]) {
+  for (const key of ["stepIntervalMs", "typingIntervalMs"]) {
     const value = config[key];
     if (value !== void 0 && (!Number.isFinite(value) || value < 0)) {
       errors.push(`${key} must be a non-negative number`);
     }
   }
-  for (const key of ["$schema", "title", "username", "hostname", "prompt"]) {
+  for (const key of [
+    "$schema",
+    "title",
+    "username",
+    "usernameSeparator",
+    "hostname",
+    "cwdSeparator",
+    "cwd",
+    "prompt"
+  ]) {
     const value = config[key];
     if (value !== void 0 && typeof value !== "string") {
       errors.push(`${key} must be a string`);
@@ -19439,12 +19465,15 @@ function validateTheme(theme) {
     "border",
     "title",
     "username",
+    "usernameSeparator",
     "hostname",
-    "separator",
+    "cwdSeparator",
+    "cwd",
     "prompt",
     "text",
     "command",
-    "output"
+    "output",
+    "separator"
   ]) {
     if (candidate[key] !== void 0 && typeof candidate[key] !== "string") {
       errors.push(`theme.${key} must be a string`);
@@ -19526,7 +19555,7 @@ ${errors.map((error2) => `- ${error2}`).join("\n")}`);
   const text = timeline.map((line, index) => {
     const y = chromeHeight + resolved.padding + index * resolved.lineHeight;
     const fill = line.kind === "command" ? resolved.theme.command : resolved.theme.output;
-    const prefix = line.kind === "command" ? renderPromptPrefix(resolved, line.startMs, animationContext) : "";
+    const prefix = line.kind === "command" ? renderPromptPrefix(resolved, line.cwd, line.startMs, animationContext) : "";
     const contents = renderTypewriterSegments(line.segments, line.startMs, line.typingIntervalMs, animationContext);
     return [
       `<text x="${resolved.padding}" y="${y}" fill="${fill}">`,
@@ -19553,9 +19582,9 @@ ${errors.map((error2) => `- ${error2}`).join("\n")}`);
     "</svg>"
   ].join("\n");
 }
-function renderPromptPrefix(config, startMs, animationContext) {
+function renderPromptPrefix(config, cwd, startMs, animationContext) {
   const animation = ` opacity="0" style="${createAppearAnimation(startMs, animationContext)}"`;
-  const parts = createPromptPrefixParts(config);
+  const parts = createPromptPrefixParts(config, cwd);
   return parts.map((part) => `<tspan fill="${part.color}"${animation}>${escapeXml(part.value)}</tspan>`).join("");
 }
 function renderTypewriterSegments(segments, startMs, typingIntervalMs, animationContext) {
@@ -19698,16 +19727,24 @@ function createSegmentAttributes(segment) {
   }
   return attributes;
 }
-function createPromptPrefixParts(config) {
+function createPromptPrefixParts(config, cwd) {
   const parts = [];
   if (isNonEmptyString(config.username)) {
     parts.push({ color: config.theme.username, value: config.username });
   }
-  if (isNonEmptyString(config.username) && isNonEmptyString(config.hostname)) {
-    parts.push({ color: config.theme.separator, value: "@" });
+  if (isNonEmptyString(config.username) && isNonEmptyString(config.usernameSeparator) && isNonEmptyString(config.hostname)) {
+    parts.push({ color: config.theme.usernameSeparator, value: config.usernameSeparator });
   }
   if (isNonEmptyString(config.hostname)) {
     parts.push({ color: config.theme.hostname, value: config.hostname });
+  }
+  if (isNonEmptyString(cwd)) {
+    if (isNonEmptyString(config.hostname) && isNonEmptyString(config.cwdSeparator)) {
+      parts.push({ color: config.theme.cwdSeparator, value: config.cwdSeparator });
+    } else if (parts.length > 0) {
+      parts.push({ color: config.theme.prompt, value: " " });
+    }
+    parts.push({ color: config.theme.cwd, value: cwd });
   }
   if (parts.length > 0) {
     parts.push({ color: config.theme.prompt, value: ` ${config.prompt} ` });
