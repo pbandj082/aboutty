@@ -7,7 +7,7 @@
   "cwdSeparator": ":",
   "cwd": "~",
   "prompt": "$",
-  "width": 860,
+  "width": 880,
   "padding": 24,
   "fontSize": 14,
   "lineHeight": 22,
@@ -41,6 +41,7 @@
     },
     {
       "type": "command",
+      "cwd": "~/aboutty",
       "text": "gh repo view pbandj082/aboutty --json stargazerCount,forkCount"
     },
     {
@@ -48,7 +49,7 @@
       "typingIntervalMs": 0,
       "text": [
         {
-          "value": "repository     ",
+          "value": "repository       ",
           "color": "#94a3b8"
         },
         {
@@ -57,7 +58,7 @@
           "bold": true
         },
         {
-          "value": "stars          ",
+          "value": "stars            ",
           "color": "#94a3b8"
         },
         {
@@ -66,7 +67,7 @@
           "bold": true
         },
         {
-          "value": "forks          ",
+          "value": "forks            ",
           "color": "#94a3b8"
         },
         {
@@ -75,7 +76,7 @@
           "bold": true
         },
         {
-          "value": "open items     ",
+          "value": "open items       ",
           "color": "#94a3b8"
         },
         {
@@ -84,16 +85,16 @@
           "bold": true
         },
         {
-          "value": "commits        ",
+          "value": "commits          ",
           "color": "#94a3b8"
         },
         {
-          "value": "5\n",
+          "value": "10\n",
           "color": "#6ee7b7",
           "bold": true
         },
         {
-          "value": "default branch ",
+          "value": "default branch   ",
           "color": "#94a3b8"
         },
         {
@@ -102,7 +103,7 @@
           "bold": true
         },
         {
-          "value": "license        ",
+          "value": "license          ",
           "color": "#94a3b8"
         },
         {
@@ -111,7 +112,7 @@
           "bold": true
         },
         {
-          "value": "@aboutty/core  ",
+          "value": "@aboutty/core    ",
           "color": "#94a3b8"
         },
         {
@@ -120,7 +121,7 @@
           "bold": true
         },
         {
-          "value": "@aboutty/cli   ",
+          "value": "@aboutty/cli     ",
           "color": "#94a3b8"
         },
         {
@@ -129,7 +130,16 @@
           "bold": true
         },
         {
-          "value": "action         ",
+          "value": "@aboutty/studio  ",
+          "color": "#94a3b8"
+        },
+        {
+          "value": "v0.1.0\n",
+          "color": "#6ee7b7",
+          "bold": true
+        },
+        {
+          "value": "action           ",
           "color": "#94a3b8"
         },
         {
@@ -138,11 +148,11 @@
           "bold": true
         },
         {
-          "value": "updated        ",
+          "value": "updated          ",
           "color": "#94a3b8"
         },
         {
-          "value": "2026-06-23T19:55:21Z",
+          "value": "2026-06-24T02:13:33Z",
           "color": "#94a3b8",
           "bold": true
         }
@@ -150,6 +160,32 @@
     },
     {
       "type": "command",
+      "cwd": "~/aboutty/apps/studio",
+      "text": "pnpm build"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "value": "Building template-aware studio"
+        },
+        {
+          "value": "...",
+          "repeat": 3,
+          "repeatDelayMs": 260,
+          "typingIntervalMs": 140,
+          "color": "#38bdf8"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "dist/index.html\nassets/index-[hash].js\nassets/index-[hash].css"
+    },
+    {
+      "type": "command",
+      "cwd": "~/aboutty",
       "text": "aboutty aboutty.json --out assets/aboutty.svg"
     },
     {
