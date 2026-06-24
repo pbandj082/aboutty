@@ -1,4 +1,4 @@
-export type IconName = "copy" | "download" | "github" | "plus" | "trash" | "x";
+export type IconName = "copy" | "download" | "github" | "plus" | "trash" | "tune" | "x";
 
 const paths: Record<IconName, string> = {
   copy: '<path d="M8 8h8v8H8z"/><path d="M5 13H4a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h8a1 1 0 0 1 1 1v1"/>',
@@ -6,6 +6,7 @@ const paths: Record<IconName, string> = {
   github: '<path d="M12 2.8a9.2 9.2 0 0 0-2.9 17.9c.5.1.7-.2.7-.5v-1.7c-2.8.6-3.4-1.1-3.4-1.1-.5-1.1-1.1-1.4-1.1-1.4-.9-.6.1-.6.1-.6 1 0 1.6 1.1 1.6 1.1.9 1.5 2.4 1.1 2.9.8.1-.7.4-1.1.7-1.4-2.2-.2-4.6-1.1-4.6-5A3.9 3.9 0 0 1 7 8.2c-.1-.3-.4-1.3.1-2.7 0 0 .9-.3 2.8 1a9.5 9.5 0 0 1 5.1 0c1.9-1.3 2.8-1 2.8-1 .5 1.4.2 2.4.1 2.7a3.9 3.9 0 0 1 1 2.7c0 3.9-2.4 4.8-4.6 5 .4.3.7.9.7 1.8v2.7c0 .3.2.6.7.5A9.2 9.2 0 0 0 12 2.8z"/>',
   plus: '<path d="M12 5v14"/><path d="M5 12h14"/>',
   trash: '<path d="M4 7h16"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M6 7l1 12a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-12"/><path d="M9 7V4h6v3"/>',
+  tune: '<path d="M4 7h10"/><path d="M18 7h2"/><path d="M14 5v4"/><path d="M4 12h3"/><path d="M11 12h9"/><path d="M7 10v4"/><path d="M4 17h11"/><path d="M19 17h1"/><path d="M15 15v4"/>',
   x: '<path d="M6 6l12 12"/><path d="M18 6 6 18"/>'
 };
 
