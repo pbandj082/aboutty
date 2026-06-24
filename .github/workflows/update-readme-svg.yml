@@ -33,7 +33,7 @@ jobs:
       - run: pnpm update:readme-svg
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-      - uses: pbandj082/aboutty/packages/action@action-v0
+      - uses: pbandj082/aboutty/packages/action@aboutty-action@0.2.0
         with:
           config: aboutty.json
           output: assets/aboutty.svg
