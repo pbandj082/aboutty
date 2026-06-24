@@ -15,6 +15,7 @@ export type AbouttyText = string | AbouttyTextSegment[];
 export interface AbouttyStep {
   type: AbouttyStepType;
   text: AbouttyText;
+  cwd?: string;
   delayMs?: number;
   typingIntervalMs?: number;
 }
@@ -24,12 +25,15 @@ export interface AbouttyTheme {
   border: string;
   title: string;
   username: string;
+  usernameSeparator: string;
   hostname: string;
-  separator: string;
+  cwdSeparator: string;
+  cwd: string;
   prompt: string;
   text: string;
   command: string;
   output: string;
+  separator?: string;
 }
 
 export interface AbouttyConfig {
@@ -40,10 +44,14 @@ export interface AbouttyConfig {
   fontSize?: number;
   lineHeight?: number;
   username?: string;
+  usernameSeparator?: string;
   hostname?: string;
+  cwdSeparator?: string;
+  cwd?: string;
   prompt?: string;
   loop?: boolean;
   stepIntervalMs?: number;
+  typingIntervalMs?: number;
   theme?: Partial<AbouttyTheme>;
   steps: AbouttyStep[];
 }
@@ -55,10 +63,14 @@ export interface ResolvedAbouttyConfig {
   fontSize: number;
   lineHeight: number;
   username?: string;
+  usernameSeparator: string;
   hostname?: string;
+  cwdSeparator: string;
+  cwd: string;
   prompt: string;
   loop: boolean;
   stepIntervalMs: number;
+  typingIntervalMs: number;
   theme: AbouttyTheme;
   steps: AbouttyStep[];
 }
@@ -68,12 +80,15 @@ export const defaultTheme: AbouttyTheme = {
   border: "#2a3138",
   title: "#d7dee6",
   username: "#6ee7b7",
+  usernameSeparator: "#8bd5ca",
   hostname: "#93c5fd",
-  separator: "#6ee7b7",
-  prompt: "#6ee7b7",
+  cwdSeparator: "#7dd3fc",
+  cwd: "#a7f3d0",
+  prompt: "#5eead4",
   text: "#f8fafc",
   command: "#f8fafc",
-  output: "#b8c1cc"
+  output: "#b8c1cc",
+  separator: "#8bd5ca"
 };
 
 export const defaultConfig: ResolvedAbouttyConfig = {
@@ -82,9 +97,13 @@ export const defaultConfig: ResolvedAbouttyConfig = {
   padding: 24,
   fontSize: 14,
   lineHeight: 22,
+  usernameSeparator: "@",
+  cwdSeparator: ":",
+  cwd: "~",
   prompt: "$",
   loop: false,
-  stepIntervalMs: 35,
+  stepIntervalMs: 350,
+  typingIntervalMs: 35,
   theme: defaultTheme,
   steps: []
 };
@@ -95,6 +114,7 @@ export function resolveConfig(config: AbouttyConfig): ResolvedAbouttyConfig {
     ...config,
     theme: resolveTheme(config.theme),
     stepIntervalMs: config.stepIntervalMs ?? defaultConfig.stepIntervalMs,
+    typingIntervalMs: config.typingIntervalMs ?? defaultConfig.typingIntervalMs,
     steps: config.steps
   };
 }
@@ -105,11 +125,14 @@ function resolveTheme(theme: Partial<AbouttyTheme> | undefined): AbouttyTheme {
     border: theme?.border ?? defaultTheme.border,
     title: theme?.title ?? defaultTheme.title,
     username: theme?.username ?? defaultTheme.username,
+    usernameSeparator: theme?.usernameSeparator ?? theme?.separator ?? defaultTheme.usernameSeparator,
     hostname: theme?.hostname ?? defaultTheme.hostname,
-    separator: theme?.separator ?? defaultTheme.separator,
+    cwdSeparator: theme?.cwdSeparator ?? theme?.separator ?? theme?.prompt ?? defaultTheme.cwdSeparator,
+    cwd: theme?.cwd ?? theme?.prompt ?? defaultTheme.cwd,
     prompt: theme?.prompt ?? defaultTheme.prompt,
     text: theme?.text ?? defaultTheme.text,
     command: theme?.command ?? theme?.text ?? defaultTheme.command,
-    output: theme?.output ?? theme?.text ?? defaultTheme.output
+    output: theme?.output ?? theme?.text ?? defaultTheme.output,
+    separator: theme?.usernameSeparator ?? theme?.separator ?? defaultTheme.usernameSeparator
   };
 }

@@ -2,14 +2,21 @@
   "$schema": "../schema/aboutty.schema.json",
   "title": "install",
   "username": "pbandj082",
+  "usernameSeparator": "@",
   "hostname": "aboutty",
+  "cwdSeparator": ":",
+  "cwd": "~",
   "prompt": "$",
-  "stepIntervalMs": 35,
+  "stepIntervalMs": 350,
+  "typingIntervalMs": 35,
   "theme": {
     "background": "#101418",
     "username": "#6ee7b7",
+    "usernameSeparator": "#8bd5ca",
     "hostname": "#93c5fd",
-    "separator": "#6ee7b7",
+    "cwdSeparator": "#7dd3fc",
+    "cwd": "#a7f3d0",
+    "prompt": "#5eead4",
     "text": "#f8fafc"
   },
   "steps": [

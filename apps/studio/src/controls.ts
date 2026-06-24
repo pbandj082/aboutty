@@ -22,15 +22,31 @@ export interface ConfigControls {
   update(config: AbouttyConfig): void;
 }
 
-type TextField = "title" | "username" | "hostname" | "prompt";
+type TextField =
+  | "title"
+  | "username"
+  | "usernameSeparator"
+  | "hostname"
+  | "cwdSeparator"
+  | "cwd"
+  | "prompt";
 type NumberField =
   | "width"
   | "padding"
   | "fontSize"
   | "lineHeight"
-  | "stepIntervalMs";
-type ThemeField = "background" | "username" | "hostname" | "separator" | "text";
-type StepField = "type" | "text" | "delayMs" | "typingIntervalMs";
+  | "stepIntervalMs"
+  | "typingIntervalMs";
+type ThemeField =
+  | "background"
+  | "username"
+  | "usernameSeparator"
+  | "hostname"
+  | "cwdSeparator"
+  | "cwd"
+  | "prompt"
+  | "text";
+type StepField = "type" | "text" | "cwd" | "delayMs" | "typingIntervalMs";
 type SegmentField =
   | "value"
   | "color"
@@ -40,15 +56,33 @@ type SegmentField =
   | "bold"
   | "italic";
 
-const textFields: TextField[] = ["title", "username", "hostname", "prompt"];
+const textFields: TextField[] = [
+  "title",
+  "username",
+  "usernameSeparator",
+  "hostname",
+  "cwdSeparator",
+  "cwd",
+  "prompt"
+];
 const numberFields: NumberField[] = [
   "width",
   "padding",
   "fontSize",
   "lineHeight",
-  "stepIntervalMs"
+  "stepIntervalMs",
+  "typingIntervalMs"
 ];
-const themeFields: ThemeField[] = ["background", "username", "hostname", "separator", "text"];
+const themeFields: ThemeField[] = [
+  "background",
+  "username",
+  "usernameSeparator",
+  "hostname",
+  "cwdSeparator",
+  "cwd",
+  "prompt",
+  "text"
+];
 
 export function createConfigControls(
   target: HTMLElement,
@@ -65,13 +99,17 @@ export function createConfigControls(
       <div class="settings-grid">
         ${textInput("title", "Title")}
         ${textInput("username", "Username")}
+        ${textInput("usernameSeparator", "Username separator")}
         ${textInput("hostname", "Hostname")}
+        ${textInput("cwdSeparator", "Directory separator")}
+        ${textInput("cwd", "Default working directory")}
         ${textInput("prompt", "Prompt")}
         ${numberInput("width", "Width")}
         ${numberInput("padding", "Padding")}
         ${numberInput("fontSize", "Font size")}
         ${numberInput("lineHeight", "Line height")}
         ${numberInput("stepIntervalMs", "Step interval", 0)}
+        ${numberInput("typingIntervalMs", "Default typing interval", 0)}
       </div>
     </section>
     <section class="control-section">
@@ -79,8 +117,11 @@ export function createConfigControls(
       <div class="settings-grid">
         ${themeColorInput("background", "Terminal background")}
         ${themeColorInput("username", "Username color")}
+        ${themeColorInput("usernameSeparator", "Username separator color")}
         ${themeColorInput("hostname", "Hostname color")}
-        ${themeColorInput("separator", "Separator color")}
+        ${themeColorInput("cwdSeparator", "Directory separator color")}
+        ${themeColorInput("cwd", "Working directory color")}
+        ${themeColorInput("prompt", "Prompt color")}
         ${themeColorInput("text", "Default text color")}
       </div>
     </section>
@@ -114,6 +155,9 @@ export function createConfigControls(
 
     if (isStepControl(element)) {
       updateStepFromElement(element, config);
+      if (element.dataset.stepField === "type") {
+        renderSteps(stepsRoot, config, editingStepIndex);
+      }
       onChange(cloneConfig(config));
       return;
     }
@@ -132,6 +176,9 @@ export function createConfigControls(
 
     if (isStepControl(element)) {
       updateStepFromElement(element, config);
+      if (element.dataset.stepField === "type") {
+        renderSteps(stepsRoot, config, editingStepIndex);
+      }
       onChange(cloneConfig(config));
       return;
     }
@@ -438,6 +485,12 @@ function renderEditableStep(stepIndex: number, config: AbouttyConfig): string {
         </label>
       </div>
       <div class="step-timing-grid">
+        ${step.type === "command" ? `
+        <label>
+          <span>Working directory</span>
+          <input type="text" value="${escapeHtml(step.cwd ?? "")}" placeholder="default" data-step-index="${stepIndex}" data-step-field="cwd" />
+        </label>
+        ` : ""}
         <label>
           <span>Delay</span>
           <input type="number" min="0" step="50" value="${step.delayMs ?? ""}" data-step-index="${stepIndex}" data-step-field="delayMs" />
@@ -606,10 +659,22 @@ function updateStepFromElement(element: StepControlElement, config: AbouttyConfi
 
   if (field === "type" && element instanceof HTMLSelectElement) {
     step.type = element.value as AbouttyStepType;
+
+    if (step.type === "output") {
+      delete step.cwd;
+    }
   }
 
   if (field === "text" && element instanceof HTMLTextAreaElement) {
     step.text = element.value;
+  }
+
+  if (field === "cwd" && element instanceof HTMLInputElement) {
+    if (element.value === "") {
+      delete step.cwd;
+    } else {
+      step.cwd = element.value;
+    }
   }
 
   if ((field === "delayMs" || field === "typingIntervalMs") && element instanceof HTMLInputElement) {
@@ -745,15 +810,35 @@ function assignThemeString(config: AbouttyConfig, field: ThemeField, value: stri
     return;
   }
 
+  if (field === "usernameSeparator") {
+    delete config.theme.separator;
+  }
+
   if (Object.keys(config.theme).length === 0) {
     delete config.theme;
   }
 }
 
 function getThemeInputValue(config: AbouttyConfig, field: ThemeField): string {
-  const value = config.theme?.[field] ?? defaultTheme[field];
+  const value = getResolvedThemeInputValue(config, field);
 
   return isColorInputValue(value) ? value : defaultTheme[field];
+}
+
+function getResolvedThemeInputValue(config: AbouttyConfig, field: ThemeField): string {
+  if (field === "usernameSeparator") {
+    return config.theme?.usernameSeparator ?? config.theme?.separator ?? defaultTheme.usernameSeparator;
+  }
+
+  if (field === "cwdSeparator") {
+    return config.theme?.cwdSeparator ?? config.theme?.separator ?? config.theme?.prompt ?? defaultTheme.cwdSeparator;
+  }
+
+  if (field === "cwd") {
+    return config.theme?.cwd ?? config.theme?.prompt ?? defaultTheme.cwd;
+  }
+
+  return config.theme?.[field] ?? defaultTheme[field];
 }
 
 type StepControlElement = HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement;

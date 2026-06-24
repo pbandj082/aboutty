@@ -25,6 +25,14 @@ export function validateConfig(config: AbouttyConfig): string[] {
     ) {
       errors.push(`steps[${index}].typingIntervalMs must be a non-negative number`);
     }
+
+    if (step.cwd !== undefined && typeof step.cwd !== "string") {
+      errors.push(`steps[${index}].cwd must be a string`);
+    }
+
+    if (step.type === "output" && step.cwd !== undefined) {
+      errors.push(`steps[${index}].cwd is only supported for command steps`);
+    }
   }
 
   for (const key of ["width", "padding", "fontSize", "lineHeight"] as const) {
@@ -35,7 +43,7 @@ export function validateConfig(config: AbouttyConfig): string[] {
     }
   }
 
-  for (const key of ["stepIntervalMs"] as const) {
+  for (const key of ["stepIntervalMs", "typingIntervalMs"] as const) {
     const value = config[key];
 
     if (value !== undefined && (!Number.isFinite(value) || value < 0)) {
@@ -43,7 +51,16 @@ export function validateConfig(config: AbouttyConfig): string[] {
     }
   }
 
-  for (const key of ["$schema", "title", "username", "hostname", "prompt"] as const) {
+  for (const key of [
+    "$schema",
+    "title",
+    "username",
+    "usernameSeparator",
+    "hostname",
+    "cwdSeparator",
+    "cwd",
+    "prompt"
+  ] as const) {
     const value = config[key];
 
     if (value !== undefined && typeof value !== "string") {
@@ -77,12 +94,15 @@ function validateTheme(theme: unknown): string[] {
     "border",
     "title",
     "username",
+    "usernameSeparator",
     "hostname",
-    "separator",
+    "cwdSeparator",
+    "cwd",
     "prompt",
     "text",
     "command",
-    "output"
+    "output",
+    "separator"
   ] as const) {
     if (candidate[key] !== undefined && typeof candidate[key] !== "string") {
       errors.push(`theme.${key} must be a string`);

@@ -19,7 +19,9 @@ describe("renderSvg", () => {
   it("renders username and hostname before the prompt", () => {
     const svg = renderSvg({
       username: "aboutty",
+      usernameSeparator: "@",
       hostname: "dev",
+      cwd: "",
       prompt: "$",
       theme: {
         username: "#111111",
@@ -38,6 +40,71 @@ describe("renderSvg", () => {
     expect(svg).toContain(">dev</tspan>");
     expect(svg).toContain('fill="#333333"');
     expect(svg).toContain("> $ </tspan>");
+  });
+
+  it("defaults the current working directory to home", () => {
+    const svg = renderSvg({
+      hostname: "dev",
+      prompt: "$",
+      steps: [{ type: "command", text: "pnpm build" }]
+    });
+
+    expect(svg).toContain(">dev</tspan>");
+    expect(svg).toContain(">:</tspan>");
+    expect(svg).toContain(">~</tspan>");
+    expect(svg).toContain("> $ </tspan>");
+  });
+
+  it("renders the current working directory with configurable separator and colors", () => {
+    const svg = renderSvg({
+      username: "aboutty",
+      usernameSeparator: " at ",
+      hostname: "dev",
+      cwd: "~/workspace/aboutty",
+      cwdSeparator: " :: ",
+      prompt: "$",
+      theme: {
+        usernameSeparator: "#444444",
+        cwd: "#555555",
+        cwdSeparator: "#666666",
+        prompt: "#333333"
+      },
+      steps: [{ type: "command", text: "pnpm build" }]
+    });
+
+    expect(svg).toContain(">aboutty</tspan>");
+    expect(svg).toContain('fill="#444444"');
+    expect(svg).toContain("> at </tspan>");
+    expect(svg).toContain(">dev</tspan>");
+    expect(svg).toContain('fill="#666666"');
+    expect(svg).toContain("> :: </tspan>");
+    expect(svg).toContain('fill="#555555"');
+    expect(svg).toContain(">~/workspace/aboutty</tspan>");
+    expect(svg).toContain('fill="#333333"');
+    expect(svg).toContain("> $ </tspan>");
+  });
+
+  it("allows command steps to override the current working directory", () => {
+    const svg = renderSvg({
+      hostname: "dev",
+      cwd: "~",
+      steps: [
+        { type: "command", cwd: "~/workspace/aboutty", text: "pwd" },
+        { type: "output", text: "/home/aboutty/workspace/aboutty" },
+        { type: "command", text: "ls" }
+      ]
+    });
+
+    expect(svg).toContain(">~/workspace/aboutty</tspan>");
+    expect(svg).toContain(">~</tspan>");
+  });
+
+  it("rejects current working directories on output steps", () => {
+    expect(() =>
+      renderSvg({
+        steps: [{ type: "output", cwd: "~", text: "done" }]
+      })
+    ).toThrow("steps[0].cwd is only supported for command steps");
   });
 
   it("uses theme text as the default command and output color", () => {
@@ -73,7 +140,7 @@ describe("renderSvg", () => {
 
   it("renders characters with staggered animation", () => {
     const svg = renderSvg({
-      stepIntervalMs: 40,
+      typingIntervalMs: 40,
       steps: [{ type: "command", text: "ab", delayMs: 100 }]
     });
 
@@ -81,6 +148,20 @@ describe("renderSvg", () => {
     expect(svg).toContain('style="animation: appear 1ms linear 140ms forwards"');
     expect(svg).toContain(">a</tspan>");
     expect(svg).toContain(">b</tspan>");
+  });
+
+  it("uses the step interval before every step", () => {
+    const svg = renderSvg({
+      stepIntervalMs: 500,
+      typingIntervalMs: 0,
+      steps: [
+        { type: "output", text: "a" },
+        { type: "output", text: "b" }
+      ]
+    });
+
+    expect(svg).toContain('style="animation: appear 1ms linear 500ms forwards">a</tspan>');
+    expect(svg).toContain('style="animation: appear 1ms linear 1000ms forwards">b</tspan>');
   });
 
   it("renders multiline segment text for ASCII art", () => {
@@ -99,9 +180,8 @@ describe("renderSvg", () => {
     expect(svg.match(/<text x=/g)?.length).toBe(3);
   });
 
-  it("uses the step interval for multiline output line timing", () => {
+  it("uses the step typing interval for multiline output line timing", () => {
     const svg = renderSvg({
-      stepIntervalMs: 20,
       steps: [{ type: "output", delayMs: 100, typingIntervalMs: 0, text: "a\nb" }]
     });
 
@@ -112,7 +192,7 @@ describe("renderSvg", () => {
 
   it("replays repeated segment animations with segment typing interval", () => {
     const svg = renderSvg({
-      stepIntervalMs: 10,
+      typingIntervalMs: 10,
       steps: [
         {
           type: "output",
@@ -138,7 +218,7 @@ describe("renderSvg", () => {
   it("renders looped animation keyframes when loop is enabled", () => {
     const svg = renderSvg({
       loop: true,
-      stepIntervalMs: 40,
+      typingIntervalMs: 40,
       steps: [{ type: "command", text: "ab", delayMs: 100 }]
     });
 

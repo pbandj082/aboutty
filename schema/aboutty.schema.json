@@ -31,7 +31,16 @@
     "username": {
       "type": "string"
     },
+    "usernameSeparator": {
+      "type": "string"
+    },
     "hostname": {
+      "type": "string"
+    },
+    "cwdSeparator": {
+      "type": "string"
+    },
+    "cwd": {
       "type": "string"
     },
     "prompt": {
@@ -44,6 +53,10 @@
       "type": "number",
       "minimum": 0
     },
+    "typingIntervalMs": {
+      "type": "number",
+      "minimum": 0
+    },
     "theme": {
       "type": "object",
       "additionalProperties": false,
@@ -52,12 +65,18 @@
         "border": { "type": "string" },
         "title": { "type": "string" },
         "username": { "type": "string" },
+        "usernameSeparator": { "type": "string" },
         "hostname": { "type": "string" },
-        "separator": { "type": "string" },
+        "cwdSeparator": { "type": "string" },
+        "cwd": { "type": "string" },
         "prompt": { "type": "string" },
         "text": { "type": "string" },
         "command": { "type": "string" },
-        "output": { "type": "string" }
+        "output": { "type": "string" },
+        "separator": {
+          "type": "string",
+          "deprecated": true
+        }
       }
     },
     "steps": {
@@ -67,6 +86,21 @@
         "type": "object",
         "additionalProperties": false,
         "required": ["type", "text"],
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "type": { "const": "output" }
+              },
+              "required": ["type"]
+            },
+            "then": {
+              "not": {
+                "required": ["cwd"]
+              }
+            }
+          }
+        ],
         "properties": {
           "type": {
             "enum": ["command", "output"]
@@ -114,6 +148,9 @@
                 }
               }
             ]
+          },
+          "cwd": {
+            "type": "string"
           },
           "delayMs": {
             "type": "number",

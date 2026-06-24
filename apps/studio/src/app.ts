@@ -2,8 +2,10 @@ import { renderSvg, type AbouttyConfig } from "@aboutty/core";
 import { createConfigControls } from "./controls";
 import { defaultStudioConfig } from "./default-config";
 import { downloadText, workflowTemplate } from "./downloads";
-import { iconButton } from "./icons";
+import { escapeHtml } from "./html";
+import { dropdownTriangleIcon, iconButton } from "./icons";
 import { createPreview } from "./preview";
+import { createTemplateConfig, studioTemplates } from "./templates";
 
 type CodeTab = "config" | "workflow";
 
@@ -13,6 +15,7 @@ export function mountApp(target: HTMLElement): void {
   let currentJson = JSON.stringify(defaultStudioConfig, null, 2);
   let currentWorkflow = workflowTemplate();
   let activeCodeTab: CodeTab = "config";
+  let templateMenuOpen = false;
   let jsonParseTimer: number | undefined;
 
   target.innerHTML = `
@@ -28,7 +31,20 @@ export function mountApp(target: HTMLElement): void {
       <section class="workspace" aria-label="aboutty generator">
         <div class="editor-pane">
           <div class="pane-header">
-            <h2>Parameters</h2>
+            <h2>Controls</h2>
+            <div class="template-menu" data-template-menu>
+              <button type="button" class="template-button" data-action="toggle-template-menu" data-template-button aria-haspopup="menu" aria-expanded="false">
+                <span class="button-label">Template</span>
+                ${dropdownTriangleIcon()}
+              </button>
+              <div class="template-list" data-template-list role="menu" hidden>
+                ${studioTemplates.map((template) => `
+                  <button type="button" class="template-item" data-action="apply-template" data-template-id="${escapeHtml(template.id)}" role="menuitem">
+                    ${escapeHtml(template.label)}
+                  </button>
+                `).join("")}
+              </div>
+            </div>
           </div>
           <div class="editor-scroll">
             <div data-controls></div>
@@ -90,6 +106,8 @@ export function mountApp(target: HTMLElement): void {
   const downloadCodeButton = target.querySelector<HTMLButtonElement>("[data-download-code]");
   const copyCodeButton = target.querySelector<HTMLButtonElement>("[data-copy-code]");
   const loopToggle = target.querySelector<HTMLInputElement>("[data-loop-toggle]");
+  const templateButton = target.querySelector<HTMLButtonElement>("[data-template-button]");
+  const templateList = target.querySelector<HTMLElement>("[data-template-list]");
   const tabButtons = target.querySelectorAll<HTMLButtonElement>("[data-code-tab]");
 
   if (
@@ -101,7 +119,9 @@ export function mountApp(target: HTMLElement): void {
     !jsonEditor ||
     !downloadCodeButton ||
     !copyCodeButton ||
-    !loopToggle
+    !loopToggle ||
+    !templateButton ||
+    !templateList
   ) {
     throw new Error("Failed to mount aboutty app.");
   }
@@ -113,6 +133,8 @@ export function mountApp(target: HTMLElement): void {
   const downloadRoot = downloadCodeButton;
   const copyRoot = copyCodeButton;
   const loopRoot = loopToggle;
+  const templateButtonRoot = templateButton;
+  const templateListRoot = templateList;
   const preview = createPreview(previewRoot);
   const controls = createConfigControls(controlsRoot, currentConfig, (nextConfig) => {
     currentConfig = nextConfig;
@@ -162,6 +184,12 @@ export function mountApp(target: HTMLElement): void {
     }
   }
 
+  function setTemplateMenuOpen(open: boolean): void {
+    templateMenuOpen = open;
+    templateListRoot.hidden = !open;
+    templateButtonRoot.setAttribute("aria-expanded", String(open));
+  }
+
   function applyJsonEditorValue(value: string): void {
     try {
       const parsedConfig = JSON.parse(value) as AbouttyConfig;
@@ -185,9 +213,39 @@ export function mountApp(target: HTMLElement): void {
   }
 
   target.addEventListener("click", async (event) => {
-    const button = (event.target as HTMLElement).closest<HTMLButtonElement>("button[data-action]");
+    const targetElement = event.target as HTMLElement;
+
+    if (templateMenuOpen && !targetElement.closest("[data-template-menu]")) {
+      setTemplateMenuOpen(false);
+    }
+
+    const button = targetElement.closest<HTMLButtonElement>("button[data-action]");
 
     if (!button) {
+      return;
+    }
+
+    if (button.dataset.action === "toggle-template-menu") {
+      setTemplateMenuOpen(!templateMenuOpen);
+      return;
+    }
+
+    if (button.dataset.action === "apply-template") {
+      const nextConfig = createTemplateConfig(button.dataset.templateId ?? "");
+
+      if (nextConfig) {
+        if (jsonParseTimer !== undefined) {
+          window.clearTimeout(jsonParseTimer);
+          jsonParseTimer = undefined;
+        }
+
+        currentConfig = nextConfig;
+        currentJson = JSON.stringify(currentConfig, null, 2);
+        controls.update(currentConfig);
+        renderCurrent(currentConfig);
+      }
+
+      setTemplateMenuOpen(false);
       return;
     }
 
@@ -214,6 +272,13 @@ export function mountApp(target: HTMLElement): void {
       window.setTimeout(() => {
         setButtonLabel(copyRoot, "Copy");
       }, 1200);
+    }
+  });
+
+  target.addEventListener("keydown", (event) => {
+    if (event.key === "Escape" && templateMenuOpen) {
+      setTemplateMenuOpen(false);
+      templateButtonRoot.focus();
     }
   });
 

@@ -16,3 +16,11 @@ export function icon(name: IconName): string {
 export function iconButton(iconName: IconName, label: string): string {
   return `${icon(iconName)}<span class="button-label">${label}</span>`;
 }
+
+export function dropdownTriangleIcon(): string {
+  return [
+    '<svg class="suffix-icon" viewBox="0 0 12 12" aria-hidden="true">',
+    '<path d="M2.5 4h7L6 8z" />',
+    "</svg>"
+  ].join("");
+}
