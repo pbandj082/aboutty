@@ -2,6 +2,11 @@ name: Update README SVG
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches:
+      - main
+    types:
+      - closed
   schedule:
     - cron: "17 3 * * *"
 
@@ -10,11 +15,13 @@ permissions:
 
 jobs:
   update:
+    if: github.event_name != 'pull_request' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.event.pull_request.merge_commit_sha || github.sha }}
       - uses: pnpm/action-setup@v4
         with:
           version: 10.15.1
