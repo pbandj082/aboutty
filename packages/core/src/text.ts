@@ -1,28 +1,53 @@
-import type { AbouttyText, AbouttyTextSegment } from "./config.js";
+import type {
+  AbouttyFramesTextSegment,
+  AbouttyText,
+  AbouttyTextSegment,
+  AbouttyValueTextSegment
+} from "./config.js";
 
+export const defaultFrameIntervalMs = 120;
+export const defaultFrameRepeatDelayMs = 0;
 export const defaultRepeatDelayMs = 300;
+
+export interface AbouttyTextLineGroup {
+  lines: AbouttyTextSegment[][];
+}
 
 export function normalizeText(text: AbouttyText): AbouttyTextSegment[] {
   if (typeof text === "string") {
     return [{ value: text }];
   }
 
-  return text.map((segment) => ({ ...segment }));
+  return text.map((segment) =>
+    isFramesSegment(segment) ? { ...segment, frames: [...segment.frames] } : { ...segment }
+  );
 }
 
 export function splitTextIntoLines(text: AbouttyText): AbouttyTextSegment[][] {
-  const lines: AbouttyTextSegment[][] = [[]];
+  return splitTextIntoLineGroups(text).flatMap((group) => group.lines);
+}
+
+export function splitTextIntoLineGroups(text: AbouttyText): AbouttyTextLineGroup[] {
+  let currentLines: AbouttyTextSegment[][] = [[]];
+  const groups: AbouttyTextLineGroup[] = [{ lines: currentLines }];
 
   for (const segment of normalizeText(text)) {
-    const parts = getSegmentValue(segment).split("\n");
+    if (isFramesSegment(segment)) {
+      appendFramesSegment(currentLines, segment);
+      continue;
+    }
+
+    const parts = segment.value.split("\n");
 
     for (const [index, part] of parts.entries()) {
       if (index > 0) {
-        lines.push([]);
+        currentLines = [[]];
+
+        groups.push({ lines: currentLines });
       }
 
       if (part.length > 0) {
-        lines.at(-1)?.push({
+        currentLines[0]?.push({
           ...segment,
           value: part
         });
@@ -30,11 +55,11 @@ export function splitTextIntoLines(text: AbouttyText): AbouttyTextSegment[][] {
     }
   }
 
-  return lines.length === 0 ? [[]] : lines;
+  return groups;
 }
 
 export function getTextLength(segments: AbouttyTextSegment[]): number {
-  return segments.reduce((length, segment) => length + Array.from(getSegmentValue(segment)).length, 0);
+  return segments.reduce((length, segment) => length + getSegmentTextLength(segment), 0);
 }
 
 export function textToString(text: AbouttyText): string {
@@ -48,7 +73,19 @@ export function expandSegmentValue(segment: AbouttyTextSegment): string {
 }
 
 export function getSegmentValue(segment: AbouttyTextSegment): string {
+  if (isFramesSegment(segment)) {
+    return segment.frames.at(-1) ?? "";
+  }
+
   return segment.value;
+}
+
+export function getSegmentFrames(segment: AbouttyFramesTextSegment): string[] {
+  return segment.frames;
+}
+
+export function getSegmentFrameIntervalMs(segment: AbouttyFramesTextSegment): number {
+  return segment.frameIntervalMs ?? defaultFrameIntervalMs;
 }
 
 export function getSegmentRepeat(segment: AbouttyTextSegment): number {
@@ -56,6 +93,10 @@ export function getSegmentRepeat(segment: AbouttyTextSegment): number {
 }
 
 export function getSegmentRepeatDelayMs(segment: AbouttyTextSegment): number {
+  if (isFramesSegment(segment)) {
+    return segment.repeatDelayMs ?? defaultFrameRepeatDelayMs;
+  }
+
   return segment.repeatDelayMs ?? defaultRepeatDelayMs;
 }
 
@@ -63,13 +104,57 @@ export function getSegmentAnimationDurationMs(
   segment: AbouttyTextSegment,
   fallbackIntervalMs: number
 ): number {
-  const intervalMs = segment.typingIntervalMs ?? fallbackIntervalMs;
-  const typingDurationMs = Array.from(getSegmentValue(segment)).length * intervalMs;
+  const baseDurationMs = isFramesSegment(segment)
+    ? segment.frames.length * getSegmentFrameIntervalMs(segment)
+    : Array.from(segment.value).length * (segment.typingIntervalMs ?? fallbackIntervalMs);
   const repeat = getSegmentRepeat(segment);
 
   if (repeat <= 1) {
-    return typingDurationMs;
+    return baseDurationMs;
   }
 
-  return (typingDurationMs + getSegmentRepeatDelayMs(segment)) * (repeat - 1) + typingDurationMs;
+  return (baseDurationMs + getSegmentRepeatDelayMs(segment)) * (repeat - 1) + baseDurationMs;
+}
+
+export function getSegmentTextLength(segment: AbouttyTextSegment): number {
+  if (isFramesSegment(segment)) {
+    return segment.frames.reduce(
+      (length, frame) => Math.max(length, getFrameTextLength(frame)),
+      0
+    );
+  }
+
+  return Array.from(segment.value).length;
+}
+
+export function isFramesSegment(segment: AbouttyTextSegment): segment is AbouttyFramesTextSegment {
+  return Array.isArray((segment as Partial<AbouttyFramesTextSegment>).frames);
+}
+
+export function isValueSegment(segment: AbouttyTextSegment): segment is AbouttyValueTextSegment {
+  return !isFramesSegment(segment);
+}
+
+function appendFramesSegment(lines: AbouttyTextSegment[][], segment: AbouttyFramesTextSegment): void {
+  const frameRows = segment.frames.map(splitFrameLines);
+  const rowCount = frameRows.reduce((count, rows) => Math.max(count, rows.length), 1);
+
+  for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
+    lines[rowIndex] ??= [];
+    lines[rowIndex]?.push({
+      ...segment,
+      frames: frameRows.map((rows) => rows[rowIndex] ?? "")
+    });
+  }
+}
+
+function splitFrameLines(frame: string): string[] {
+  return frame.split(/\r?\n/);
+}
+
+function getFrameTextLength(frame: string): number {
+  return splitFrameLines(frame).reduce(
+    (length, line) => Math.max(length, Array.from(line).length),
+    0
+  );
 }

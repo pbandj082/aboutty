@@ -19320,48 +19320,93 @@ function escapeXml(value) {
 }
 
 // ../core/dist/text.js
+var defaultFrameIntervalMs = 120;
+var defaultFrameRepeatDelayMs = 0;
 var defaultRepeatDelayMs = 300;
 function normalizeText(text) {
   if (typeof text === "string") {
     return [{ value: text }];
   }
-  return text.map((segment) => ({ ...segment }));
+  return text.map((segment) => isFramesSegment(segment) ? { ...segment, frames: [...segment.frames] } : { ...segment });
 }
-function splitTextIntoLines(text) {
-  const lines = [[]];
+function splitTextIntoLineGroups(text) {
+  let currentLines = [[]];
+  const groups = [{ lines: currentLines }];
   for (const segment of normalizeText(text)) {
-    const parts = getSegmentValue(segment).split("\n");
+    if (isFramesSegment(segment)) {
+      appendFramesSegment(currentLines, segment);
+      continue;
+    }
+    const parts = segment.value.split("\n");
     for (const [index, part] of parts.entries()) {
       if (index > 0) {
-        lines.push([]);
+        currentLines = [[]];
+        groups.push({ lines: currentLines });
       }
       if (part.length > 0) {
-        lines.at(-1)?.push({
+        currentLines[0]?.push({
           ...segment,
           value: part
         });
       }
     }
   }
-  return lines.length === 0 ? [[]] : lines;
+  return groups;
 }
 function getSegmentValue(segment) {
+  if (isFramesSegment(segment)) {
+    return segment.frames.at(-1) ?? "";
+  }
   return segment.value;
+}
+function getSegmentFrames(segment) {
+  return segment.frames;
+}
+function getSegmentFrameIntervalMs(segment) {
+  return segment.frameIntervalMs ?? defaultFrameIntervalMs;
 }
 function getSegmentRepeat(segment) {
   return segment.repeat ?? 1;
 }
 function getSegmentRepeatDelayMs(segment) {
+  if (isFramesSegment(segment)) {
+    return segment.repeatDelayMs ?? defaultFrameRepeatDelayMs;
+  }
   return segment.repeatDelayMs ?? defaultRepeatDelayMs;
 }
 function getSegmentAnimationDurationMs(segment, fallbackIntervalMs) {
-  const intervalMs = segment.typingIntervalMs ?? fallbackIntervalMs;
-  const typingDurationMs = Array.from(getSegmentValue(segment)).length * intervalMs;
+  const baseDurationMs = isFramesSegment(segment) ? segment.frames.length * getSegmentFrameIntervalMs(segment) : Array.from(segment.value).length * (segment.typingIntervalMs ?? fallbackIntervalMs);
   const repeat = getSegmentRepeat(segment);
   if (repeat <= 1) {
-    return typingDurationMs;
+    return baseDurationMs;
   }
-  return (typingDurationMs + getSegmentRepeatDelayMs(segment)) * (repeat - 1) + typingDurationMs;
+  return (baseDurationMs + getSegmentRepeatDelayMs(segment)) * (repeat - 1) + baseDurationMs;
+}
+function getSegmentTextLength(segment) {
+  if (isFramesSegment(segment)) {
+    return segment.frames.reduce((length, frame) => Math.max(length, getFrameTextLength(frame)), 0);
+  }
+  return Array.from(segment.value).length;
+}
+function isFramesSegment(segment) {
+  return Array.isArray(segment.frames);
+}
+function appendFramesSegment(lines, segment) {
+  const frameRows = segment.frames.map(splitFrameLines);
+  const rowCount = frameRows.reduce((count, rows) => Math.max(count, rows.length), 1);
+  for (let rowIndex = 0; rowIndex < rowCount; rowIndex += 1) {
+    lines[rowIndex] ??= [];
+    lines[rowIndex]?.push({
+      ...segment,
+      frames: frameRows.map((rows) => rows[rowIndex] ?? "")
+    });
+  }
+}
+function splitFrameLines(frame) {
+  return frame.split(/\r?\n/);
+}
+function getFrameTextLength(frame) {
+  return splitFrameLines(frame).reduce((length, line) => Math.max(length, Array.from(line).length), 0);
 }
 
 // ../core/dist/timeline.js
@@ -19371,18 +19416,20 @@ function createTimeline(config) {
   for (const step of config.steps) {
     cursor += step.delayMs ?? config.stepIntervalMs;
     const typingIntervalMs = step.typingIntervalMs ?? config.typingIntervalMs;
-    const stepLines = splitTextIntoLines(step.text);
-    for (const [lineIndex, segments] of stepLines.entries()) {
-      lines.push({
-        kind: step.type,
-        cwd: step.type === "command" ? step.cwd ?? config.cwd : void 0,
-        segments,
-        startMs: cursor,
-        typingIntervalMs
-      });
-      const typingDurationMs = getTypingDurationMs(segments, typingIntervalMs);
+    const lineGroups = splitTextIntoLineGroups(step.text);
+    for (const [groupIndex, group] of lineGroups.entries()) {
+      for (const segments of group.lines) {
+        lines.push({
+          kind: step.type,
+          cwd: step.type === "command" ? step.cwd ?? config.cwd : void 0,
+          segments,
+          startMs: cursor,
+          typingIntervalMs
+        });
+      }
+      const typingDurationMs = group.lines.reduce((durationMs, segments) => Math.max(durationMs, getTypingDurationMs(segments, typingIntervalMs)), 0);
       cursor += typingDurationMs;
-      if (lineIndex < stepLines.length - 1) {
+      if (groupIndex < lineGroups.length - 1) {
         cursor += typingIntervalMs;
       }
     }
@@ -19405,6 +19452,9 @@ function validateConfig(config) {
       errors.push(`steps[${index}].type must be "command" or "output"`);
     }
     errors.push(...validateText(step.text, `steps[${index}].text`));
+    if (step.type === "command" && hasFramesSegment(step.text)) {
+      errors.push(`steps[${index}].text frames segments are only supported for output steps`);
+    }
     if (step.delayMs !== void 0 && (!Number.isFinite(step.delayMs) || step.delayMs < 0)) {
       errors.push(`steps[${index}].delayMs must be a non-negative number`);
     }
@@ -19452,6 +19502,9 @@ function validateConfig(config) {
     errors.push(...validateTheme(config.theme));
   }
   return errors;
+}
+function hasFramesSegment(text) {
+  return Array.isArray(text) && text.some((segment) => Boolean(segment && typeof segment === "object" && !Array.isArray(segment) && "frames" in segment));
 }
 function validateTheme(theme) {
   const errors = [];
@@ -19503,8 +19556,14 @@ function validateText(text, path) {
       continue;
     }
     const candidate = segment;
-    if (typeof candidate.value !== "string" || candidate.value.length === 0) {
+    const hasValue = candidate.value !== void 0;
+    const hasFrames = candidate.frames !== void 0;
+    if (hasValue === hasFrames) {
+      errors.push(`${path}[${index}] must include either value or frames`);
+    } else if (hasValue && (typeof candidate.value !== "string" || candidate.value.length === 0)) {
       errors.push(`${path}[${index}].value must be a non-empty string`);
+    } else if (hasFrames) {
+      errors.push(...validateFrames(candidate.frames, `${path}[${index}].frames`));
     }
     if (candidate.color !== void 0 && typeof candidate.color !== "string") {
       errors.push(`${path}[${index}].color must be a string`);
@@ -19519,9 +19578,14 @@ function validateText(text, path) {
         errors.push(`${path}[${index}].repeatDelayMs must be a non-negative number`);
       }
     }
+    if (candidate.frameIntervalMs !== void 0) {
+      if (!hasFrames || typeof candidate.frameIntervalMs !== "number" || !Number.isFinite(candidate.frameIntervalMs) || candidate.frameIntervalMs < 0) {
+        errors.push(`${path}[${index}].frameIntervalMs must be a non-negative number on frames segments`);
+      }
+    }
     if (candidate.typingIntervalMs !== void 0) {
-      if (typeof candidate.typingIntervalMs !== "number" || !Number.isFinite(candidate.typingIntervalMs) || candidate.typingIntervalMs < 0) {
-        errors.push(`${path}[${index}].typingIntervalMs must be a non-negative number`);
+      if (!hasValue || typeof candidate.typingIntervalMs !== "number" || !Number.isFinite(candidate.typingIntervalMs) || candidate.typingIntervalMs < 0) {
+        errors.push(`${path}[${index}].typingIntervalMs must be a non-negative number on value segments`);
       }
     }
     if (candidate.bold !== void 0 && typeof candidate.bold !== "boolean") {
@@ -19533,10 +19597,29 @@ function validateText(text, path) {
   }
   return errors;
 }
+function validateFrames(frames, path) {
+  const errors = [];
+  if (!Array.isArray(frames)) {
+    errors.push(`${path} must be a non-empty string array`);
+    return errors;
+  }
+  if (frames.length === 0) {
+    errors.push(`${path} must include at least one frame`);
+    return errors;
+  }
+  for (const [index, frame] of frames.entries()) {
+    if (typeof frame !== "string") {
+      errors.push(`${path}[${index}] must be a string`);
+      continue;
+    }
+  }
+  return errors;
+}
 
 // ../core/dist/render.js
 var chromeHeight = 36;
 var defaultLoopPauseMs = 1200;
+var monospaceCharacterWidthEm = 0.6;
 var textBaselineRatio = 0.8;
 function renderSvg(config) {
   const errors = validateConfig(config);
@@ -19559,11 +19642,18 @@ ${errors.map((error2) => `- ${error2}`).join("\n")}`);
     const y = chromeHeight + resolved.padding + textBaselineOffset + index * resolved.lineHeight;
     const fill = line.kind === "command" ? resolved.theme.command : resolved.theme.output;
     const prefix = line.kind === "command" ? renderPromptPrefix(resolved, line.cwd, line.startMs, animationContext) : "";
-    const contents = renderTypewriterSegments(line.segments, line.startMs, line.typingIntervalMs, animationContext);
+    const contents = renderLineSegments(line.segments, line.startMs, line.typingIntervalMs, animationContext, {
+      fallbackFill: fill,
+      fontSize: resolved.fontSize,
+      x: resolved.padding,
+      y
+    });
     return [
-      `<text x="${resolved.padding}" y="${formatNumber(y)}" fill="${fill}">`,
-      `${prefix}${contents}`,
-      "</text>"
+      `<text x="${resolved.padding}" y="${formatNumber(y)}" fill="${fill}" xml:space="preserve">`,
+      prefix,
+      `${contents.inline}`,
+      "</text>",
+      ...contents.overlays
     ].join("");
   }).join("\n");
   return [
@@ -19590,29 +19680,44 @@ function renderPromptPrefix(config, cwd, startMs, animationContext) {
   const parts = createPromptPrefixParts(config, cwd);
   return parts.map((part) => `<tspan fill="${part.color}"${animation}>${escapeXml(part.value)}</tspan>`).join("");
 }
-function renderTypewriterSegments(segments, startMs, typingIntervalMs, animationContext) {
+function renderLineSegments(segments, startMs, typingIntervalMs, animationContext, options) {
   let cursorMs = startMs;
-  const output = [];
+  let column = 0;
+  const inline = [];
+  const overlays = [];
   for (const segment of segments) {
+    if (isFramesSegment(segment)) {
+      const renderedFrame = renderFrameSegment(segment, cursorMs, animationContext, {
+        ...options,
+        x: options.x + column * options.fontSize * monospaceCharacterWidthEm
+      });
+      inline.push(renderedFrame.inline);
+      overlays.push(...renderedFrame.overlays);
+      cursorMs += getSegmentAnimationDurationMs(segment, typingIntervalMs);
+      column += getSegmentTextLength(segment);
+      continue;
+    }
     const attributes = createSegmentAttributes(segment);
     const intervalMs = segment.typingIntervalMs ?? typingIntervalMs;
     const repeat = getSegmentRepeat(segment);
     const value = getSegmentValue(segment);
     if (repeat > 1) {
-      output.push(renderRepeatingTypewriterSegment(segment, value, cursorMs, intervalMs, animationContext));
+      inline.push(renderRepeatingTypewriterSegment(segment, value, cursorMs, intervalMs, animationContext));
       cursorMs += getSegmentAnimationDurationMs(segment, typingIntervalMs);
+      column += Array.from(value).length;
       continue;
     }
     for (const character of Array.from(value)) {
-      output.push(`<tspan ${[
+      inline.push(`<tspan ${[
         ...attributes,
         `opacity="0"`,
         `style="${createAppearAnimation(cursorMs, animationContext)}"`
       ].join(" ")}>${escapeXml(character)}</tspan>`);
       cursorMs += intervalMs;
+      column += 1;
     }
   }
-  return output.join("");
+  return { inline: inline.join(""), overlays };
 }
 function renderRepeatingTypewriterSegment(segment, value, startMs, intervalMs, animationContext) {
   const attributes = createSegmentAttributes(segment);
@@ -19637,6 +19742,48 @@ function renderRepeatingTypewriterSegment(segment, value, startMs, intervalMs, a
       `style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms linear ${animationContext.loopDurationMs === void 0 ? `${formatNumber(startMs)}ms forwards` : "0ms infinite"}"`
     ].join(" ")}>${escapeXml(character)}</tspan>`;
   }).join("");
+}
+function renderFrameSegment(segment, startMs, animationContext, options) {
+  const frames = getSegmentFrames(segment);
+  const attributes = createFrameTextAttributes(segment, options.fallbackFill);
+  const intervalMs = getSegmentFrameIntervalMs(segment);
+  const maxFrameLength = getSegmentTextLength(segment);
+  const totalDurationMs = getSegmentAnimationDurationMs(segment, intervalMs);
+  const inline = `<tspan opacity="0">${" ".repeat(maxFrameLength)}</tspan>`;
+  if (totalDurationMs <= 0) {
+    const finalFrame = padFrame(frames.at(-1) ?? "", maxFrameLength);
+    return {
+      inline,
+      overlays: [`<text ${[
+        `x="${formatNumber(options.x)}"`,
+        `y="${formatNumber(options.y)}"`,
+        ...attributes,
+        `xml:space="preserve"`,
+        `opacity="0"`,
+        `style="${createAppearAnimation(startMs, animationContext)}"`
+      ].join(" ")}>${escapeXml(finalFrame)}</text>`]
+    };
+  }
+  const animationDurationMs = animationContext.loopDurationMs ?? totalDurationMs;
+  return {
+    inline,
+    overlays: frames.map((frame, frameIndex) => {
+      const animationName = `aboutty-frame-${animationContext.nextId++}`;
+      animationContext.keyframes.push(createFrameKeyframes(animationName, frameIndex, segment, intervalMs, {
+        keyframeDurationMs: animationDurationMs,
+        offsetMs: animationContext.loopDurationMs === void 0 ? 0 : startMs,
+        repeatUntilEnd: animationContext.loopDurationMs !== void 0 && segment.repeat === void 0
+      }));
+      return `<text ${[
+        `x="${formatNumber(options.x)}"`,
+        `y="${formatNumber(options.y)}"`,
+        ...attributes,
+        `xml:space="preserve"`,
+        `opacity="0"`,
+        `style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms linear ${animationContext.loopDurationMs === void 0 ? `${formatNumber(startMs)}ms forwards` : "0ms infinite"}"`
+      ].join(" ")}>${escapeXml(padFrame(frame, maxFrameLength))}</text>`;
+    })
+  };
 }
 function createRepeatKeyframes(name, characterIndex, value, intervalMs, segment, options = {}) {
   const characterCount = Array.from(value).length;
@@ -19667,6 +19814,45 @@ function createRepeatKeyframes(name, characterIndex, value, intervalMs, segment,
   }
   setOpacityPoint(points, offsetMs + segmentDurationMs, 1, keyframeDurationMs);
   setOpacityPoint(points, keyframeDurationMs, 1, keyframeDurationMs);
+  const keyframes = [...points.entries()].sort(([left], [right]) => left - right).map(([timeMs, opacity]) => {
+    const percent = formatNumber(timeMs / keyframeDurationMs * 100);
+    return `${percent}% { opacity: ${opacity}; }`;
+  }).join(" ");
+  return `@keyframes ${name} { ${keyframes} }`;
+}
+function createFrameKeyframes(name, frameIndex, segment, intervalMs, options = {}) {
+  const frameCount = segment.frames.length;
+  const passDurationMs = frameCount * intervalMs;
+  const repeatDelayMs = getSegmentRepeatDelayMs(segment);
+  const cycleDurationMs = passDurationMs + repeatDelayMs;
+  const baseSegmentDurationMs = getSegmentAnimationDurationMs(segment, intervalMs);
+  const keyframeDurationMs = options.keyframeDurationMs ?? baseSegmentDurationMs;
+  const offsetMs = options.offsetMs ?? 0;
+  const remainingDurationMs = Math.max(keyframeDurationMs - offsetMs, 0);
+  const repeat = options.repeatUntilEnd ? Math.max(Math.ceil(remainingDurationMs / Math.max(cycleDurationMs, 1)), 1) : getSegmentRepeat(segment);
+  const segmentDurationMs = options.repeatUntilEnd ? remainingDurationMs : baseSegmentDurationMs;
+  const instantMs = Math.max(keyframeDurationMs / 1e5, 1e-3);
+  const isLastFrame = frameIndex === frameCount - 1;
+  const points = /* @__PURE__ */ new Map();
+  setOpacityPoint(points, 0, 0, keyframeDurationMs);
+  for (let cycle = 0; cycle < repeat; cycle += 1) {
+    const cycleStartMs = offsetMs + cycle * cycleDurationMs;
+    const showMs = cycleStartMs + frameIndex * intervalMs;
+    const hideMs = isLastFrame ? cycleStartMs + cycleDurationMs : showMs + intervalMs;
+    const isLastCycle = cycle === repeat - 1;
+    if (showMs <= 0) {
+      setOpacityPoint(points, 0, 1, keyframeDurationMs);
+    } else {
+      setOpacityPoint(points, showMs, 0, keyframeDurationMs);
+      setOpacityPoint(points, showMs + instantMs, 1, keyframeDurationMs);
+    }
+    if (!isLastCycle || !isLastFrame) {
+      setOpacityPoint(points, hideMs, 1, keyframeDurationMs);
+      setOpacityPoint(points, hideMs + instantMs, 0, keyframeDurationMs);
+    }
+  }
+  setOpacityPoint(points, offsetMs + segmentDurationMs, isLastFrame ? 1 : 0, keyframeDurationMs);
+  setOpacityPoint(points, keyframeDurationMs, isLastFrame ? 1 : 0, keyframeDurationMs);
   const keyframes = [...points.entries()].sort(([left], [right]) => left - right).map(([timeMs, opacity]) => {
     const percent = formatNumber(timeMs / keyframeDurationMs * 100);
     return `${percent}% { opacity: ${opacity}; }`;
@@ -19714,6 +19900,12 @@ function getLoopDurationMs(timeline) {
 function getTextBaselineOffset(fontSize, lineHeight) {
   return (lineHeight - fontSize) / 2 + fontSize * textBaselineRatio;
 }
+function getFrameLength(frame) {
+  return Array.from(frame).length;
+}
+function padFrame(frame, characterCount) {
+  return `${frame}${" ".repeat(Math.max(characterCount - getFrameLength(frame), 0))}`;
+}
 function setOpacityPoint(points, timeMs, opacity, totalDurationMs) {
   points.set(Math.min(Math.max(timeMs, 0), totalDurationMs), opacity);
 }
@@ -19725,6 +19917,16 @@ function createSegmentAttributes(segment) {
   if (segment.color) {
     attributes.push(`fill="${escapeXml(segment.color)}"`);
   }
+  if (segment.bold) {
+    attributes.push('font-weight="700"');
+  }
+  if (segment.italic) {
+    attributes.push('font-style="italic"');
+  }
+  return attributes;
+}
+function createFrameTextAttributes(segment, fallbackFill) {
+  const attributes = [`fill="${escapeXml(segment.color ?? fallbackFill)}"`];
   if (segment.bold) {
     attributes.push('font-weight="700"');
   }

@@ -97,7 +97,7 @@ const templateDefinitions: StudioTemplateDefinition[] = [
           type: "output",
           text: [
             { value: "Writing profile animation", color: "#f4f7f2" },
-            { value: "...", repeat: 2, repeatDelayMs: 280, typingIntervalMs: 160, color: "#a6e3a1" }
+            { frames: ["", ".", "..", "..."], frameIntervalMs: 160, repeat: 2, repeatDelayMs: 280, color: "#a6e3a1" }
           ]
         },
         { type: "output", typingIntervalMs: 0, text: "Done ./assets/profile.svg" }
@@ -138,8 +138,17 @@ const templateDefinitions: StudioTemplateDefinition[] = [
           type: "output",
           text: [
             { value: "Sending build context\n", color: "#cbd5e1" },
-            { value: "Resolving layers", color: "#e5eefb" },
-            { value: "...", repeat: 3, repeatDelayMs: 260, typingIntervalMs: 140, color: "#38bdf8" }
+            {
+              frames: [
+                "base   [=   ]\ndeps   [    ]\napp    [    ]",
+                "base   [==  ]\ndeps   [=   ]\napp    [    ]",
+                "base   [=== ]\ndeps   [==  ]\napp    [=   ]",
+                "base   [====]\ndeps   [====]\napp    [====]"
+              ],
+              frameIntervalMs: 180,
+              repeat: 1,
+              color: "#38bdf8"
+            }
           ]
         },
         { type: "output", typingIntervalMs: 0, text: "Successfully tagged aboutty-demo:latest" },
@@ -226,8 +235,8 @@ const templateDefinitions: StudioTemplateDefinition[] = [
         {
           type: "output",
           text: [
-            { value: "locking trace" },
-            { value: "...", repeat: 3, repeatDelayMs: 260, typingIntervalMs: 90, color: "#4ade80" }
+            { value: "locking trace " },
+            { frames: ["|", "/", "-", "\\"], frameIntervalMs: 80, color: "#4ade80" }
           ]
         },
         { type: "output", typingIntervalMs: 0, text: "trace complete  status=green" }

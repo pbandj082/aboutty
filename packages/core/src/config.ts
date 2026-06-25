@@ -1,14 +1,26 @@
 export type AbouttyStepType = "command" | "output";
 
-export interface AbouttyTextSegment {
-  value: string;
-  repeat?: number;
-  repeatDelayMs?: number;
-  typingIntervalMs?: number;
+export interface AbouttyTextSegmentStyle {
   color?: string;
   bold?: boolean;
   italic?: boolean;
 }
+
+export interface AbouttyValueTextSegment extends AbouttyTextSegmentStyle {
+  value: string;
+  repeat?: number;
+  repeatDelayMs?: number;
+  typingIntervalMs?: number;
+}
+
+export interface AbouttyFramesTextSegment extends AbouttyTextSegmentStyle {
+  frames: string[];
+  frameIntervalMs?: number;
+  repeat?: number;
+  repeatDelayMs?: number;
+}
+
+export type AbouttyTextSegment = AbouttyValueTextSegment | AbouttyFramesTextSegment;
 
 export type AbouttyText = string | AbouttyTextSegment[];
 

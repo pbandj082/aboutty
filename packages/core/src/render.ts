@@ -1,16 +1,27 @@
-import { type AbouttyConfig, type AbouttyTextSegment, resolveConfig } from "./config.js";
+import {
+  type AbouttyConfig,
+  type AbouttyFramesTextSegment,
+  type AbouttyTextSegment,
+  type AbouttyValueTextSegment,
+  resolveConfig
+} from "./config.js";
 import { escapeXml } from "./escape.js";
 import {
   getSegmentAnimationDurationMs,
+  getSegmentFrameIntervalMs,
+  getSegmentFrames,
   getSegmentRepeat,
   getSegmentRepeatDelayMs,
-  getSegmentValue
+  getSegmentTextLength,
+  getSegmentValue,
+  isFramesSegment
 } from "./text.js";
 import { createTimeline } from "./timeline.js";
 import { validateConfig } from "./validate.js";
 
 const chromeHeight = 36;
 const defaultLoopPauseMs = 1200;
+const monospaceCharacterWidthEm = 0.6;
 // Approximate alphabetic baseline position within the monospace font box.
 const textBaselineRatio = 0.8;
 
@@ -19,6 +30,11 @@ interface AnimationContext {
   keyframes: string[];
   loopDurationMs: number | undefined;
   nextId: number;
+}
+
+interface RenderedLineSegments {
+  inline: string;
+  overlays: string[];
 }
 
 export function renderSvg(config: AbouttyConfig): string {
@@ -53,12 +69,25 @@ export function renderSvg(config: AbouttyConfig): string {
               animationContext
             )
           : "";
-      const contents = renderTypewriterSegments(line.segments, line.startMs, line.typingIntervalMs, animationContext);
+      const contents = renderLineSegments(
+        line.segments,
+        line.startMs,
+        line.typingIntervalMs,
+        animationContext,
+        {
+          fallbackFill: fill,
+          fontSize: resolved.fontSize,
+          x: resolved.padding,
+          y
+        }
+      );
 
       return [
-        `<text x="${resolved.padding}" y="${formatNumber(y)}" fill="${fill}">`,
-        `${prefix}${contents}`,
-        "</text>"
+        `<text x="${resolved.padding}" y="${formatNumber(y)}" fill="${fill}" xml:space="preserve">`,
+        prefix,
+        `${contents.inline}`,
+        "</text>",
+        ...contents.overlays
       ].join("");
     })
     .join("\n");
@@ -97,29 +126,46 @@ function renderPromptPrefix(
     .join("");
 }
 
-function renderTypewriterSegments(
+function renderLineSegments(
   segments: AbouttyTextSegment[],
   startMs: number,
   typingIntervalMs: number,
-  animationContext: AnimationContext
-): string {
+  animationContext: AnimationContext,
+  options: { fallbackFill: string; fontSize: number; x: number; y: number }
+): RenderedLineSegments {
   let cursorMs = startMs;
-  const output: string[] = [];
+  let column = 0;
+  const inline: string[] = [];
+  const overlays: string[] = [];
 
   for (const segment of segments) {
+    if (isFramesSegment(segment)) {
+      const renderedFrame = renderFrameSegment(segment, cursorMs, animationContext, {
+        ...options,
+        x: options.x + column * options.fontSize * monospaceCharacterWidthEm
+      });
+
+      inline.push(renderedFrame.inline);
+      overlays.push(...renderedFrame.overlays);
+      cursorMs += getSegmentAnimationDurationMs(segment, typingIntervalMs);
+      column += getSegmentTextLength(segment);
+      continue;
+    }
+
     const attributes = createSegmentAttributes(segment);
     const intervalMs = segment.typingIntervalMs ?? typingIntervalMs;
     const repeat = getSegmentRepeat(segment);
     const value = getSegmentValue(segment);
 
     if (repeat > 1) {
-      output.push(renderRepeatingTypewriterSegment(segment, value, cursorMs, intervalMs, animationContext));
+      inline.push(renderRepeatingTypewriterSegment(segment, value, cursorMs, intervalMs, animationContext));
       cursorMs += getSegmentAnimationDurationMs(segment, typingIntervalMs);
+      column += Array.from(value).length;
       continue;
     }
 
     for (const character of Array.from(value)) {
-      output.push(
+      inline.push(
         `<tspan ${[
           ...attributes,
           `opacity="0"`,
@@ -127,14 +173,15 @@ function renderTypewriterSegments(
         ].join(" ")}>${escapeXml(character)}</tspan>`
       );
       cursorMs += intervalMs;
+      column += 1;
     }
   }
 
-  return output.join("");
+  return { inline: inline.join(""), overlays };
 }
 
 function renderRepeatingTypewriterSegment(
-  segment: AbouttyTextSegment,
+  segment: AbouttyValueTextSegment,
   value: string,
   startMs: number,
   intervalMs: number,
@@ -176,12 +223,68 @@ function renderRepeatingTypewriterSegment(
     .join("");
 }
 
+function renderFrameSegment(
+  segment: AbouttyFramesTextSegment,
+  startMs: number,
+  animationContext: AnimationContext,
+  options: { fallbackFill: string; x: number; y: number }
+): RenderedLineSegments {
+  const frames = getSegmentFrames(segment);
+  const attributes = createFrameTextAttributes(segment, options.fallbackFill);
+  const intervalMs = getSegmentFrameIntervalMs(segment);
+  const maxFrameLength = getSegmentTextLength(segment);
+  const totalDurationMs = getSegmentAnimationDurationMs(segment, intervalMs);
+  const inline = `<tspan opacity="0">${" ".repeat(maxFrameLength)}</tspan>`;
+
+  if (totalDurationMs <= 0) {
+    const finalFrame = padFrame(frames.at(-1) ?? "", maxFrameLength);
+
+    return {
+      inline,
+      overlays: [`<text ${[
+        `x="${formatNumber(options.x)}"`,
+        `y="${formatNumber(options.y)}"`,
+        ...attributes,
+        `xml:space="preserve"`,
+        `opacity="0"`,
+        `style="${createAppearAnimation(startMs, animationContext)}"`
+      ].join(" ")}>${escapeXml(finalFrame)}</text>`]
+    };
+  }
+
+  const animationDurationMs = animationContext.loopDurationMs ?? totalDurationMs;
+
+  return {
+    inline,
+    overlays: frames.map((frame, frameIndex) => {
+      const animationName = `aboutty-frame-${animationContext.nextId++}`;
+
+      animationContext.keyframes.push(
+        createFrameKeyframes(animationName, frameIndex, segment, intervalMs, {
+          keyframeDurationMs: animationDurationMs,
+          offsetMs: animationContext.loopDurationMs === undefined ? 0 : startMs,
+          repeatUntilEnd: animationContext.loopDurationMs !== undefined && segment.repeat === undefined
+        })
+      );
+
+      return `<text ${[
+        `x="${formatNumber(options.x)}"`,
+        `y="${formatNumber(options.y)}"`,
+        ...attributes,
+        `xml:space="preserve"`,
+        `opacity="0"`,
+        `style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms linear ${animationContext.loopDurationMs === undefined ? `${formatNumber(startMs)}ms forwards` : "0ms infinite"}"`
+      ].join(" ")}>${escapeXml(padFrame(frame, maxFrameLength))}</text>`;
+    })
+  };
+}
+
 function createRepeatKeyframes(
   name: string,
   characterIndex: number,
   value: string,
   intervalMs: number,
-  segment: AbouttyTextSegment,
+  segment: AbouttyValueTextSegment,
   options: { keyframeDurationMs?: number; offsetMs?: number } = {}
 ): string {
   const characterCount = Array.from(value).length;
@@ -218,6 +321,67 @@ function createRepeatKeyframes(
 
   setOpacityPoint(points, offsetMs + segmentDurationMs, 1, keyframeDurationMs);
   setOpacityPoint(points, keyframeDurationMs, 1, keyframeDurationMs);
+
+  const keyframes = [...points.entries()]
+    .sort(([left], [right]) => left - right)
+    .map(([timeMs, opacity]) => {
+      const percent = formatNumber((timeMs / keyframeDurationMs) * 100);
+
+      return `${percent}% { opacity: ${opacity}; }`;
+    })
+    .join(" ");
+
+  return `@keyframes ${name} { ${keyframes} }`;
+}
+
+function createFrameKeyframes(
+  name: string,
+  frameIndex: number,
+  segment: AbouttyFramesTextSegment,
+  intervalMs: number,
+  options: { keyframeDurationMs?: number; offsetMs?: number; repeatUntilEnd?: boolean } = {}
+): string {
+  const frameCount = segment.frames.length;
+  const passDurationMs = frameCount * intervalMs;
+  const repeatDelayMs = getSegmentRepeatDelayMs(segment);
+  const cycleDurationMs = passDurationMs + repeatDelayMs;
+  const baseSegmentDurationMs = getSegmentAnimationDurationMs(segment, intervalMs);
+  const keyframeDurationMs = options.keyframeDurationMs ?? baseSegmentDurationMs;
+  const offsetMs = options.offsetMs ?? 0;
+  const remainingDurationMs = Math.max(keyframeDurationMs - offsetMs, 0);
+  const repeat = options.repeatUntilEnd
+    ? Math.max(Math.ceil(remainingDurationMs / Math.max(cycleDurationMs, 1)), 1)
+    : getSegmentRepeat(segment);
+  const segmentDurationMs = options.repeatUntilEnd
+    ? remainingDurationMs
+    : baseSegmentDurationMs;
+  const instantMs = Math.max(keyframeDurationMs / 100000, 0.001);
+  const isLastFrame = frameIndex === frameCount - 1;
+  const points = new Map<number, 0 | 1>();
+
+  setOpacityPoint(points, 0, 0, keyframeDurationMs);
+
+  for (let cycle = 0; cycle < repeat; cycle += 1) {
+    const cycleStartMs = offsetMs + cycle * cycleDurationMs;
+    const showMs = cycleStartMs + frameIndex * intervalMs;
+    const hideMs = isLastFrame ? cycleStartMs + cycleDurationMs : showMs + intervalMs;
+    const isLastCycle = cycle === repeat - 1;
+
+    if (showMs <= 0) {
+      setOpacityPoint(points, 0, 1, keyframeDurationMs);
+    } else {
+      setOpacityPoint(points, showMs, 0, keyframeDurationMs);
+      setOpacityPoint(points, showMs + instantMs, 1, keyframeDurationMs);
+    }
+
+    if (!isLastCycle || !isLastFrame) {
+      setOpacityPoint(points, hideMs, 1, keyframeDurationMs);
+      setOpacityPoint(points, hideMs + instantMs, 0, keyframeDurationMs);
+    }
+  }
+
+  setOpacityPoint(points, offsetMs + segmentDurationMs, isLastFrame ? 1 : 0, keyframeDurationMs);
+  setOpacityPoint(points, keyframeDurationMs, isLastFrame ? 1 : 0, keyframeDurationMs);
 
   const keyframes = [...points.entries()]
     .sort(([left], [right]) => left - right)
@@ -298,6 +462,14 @@ function getTextBaselineOffset(fontSize: number, lineHeight: number): number {
   return (lineHeight - fontSize) / 2 + fontSize * textBaselineRatio;
 }
 
+function getFrameLength(frame: string): number {
+  return Array.from(frame).length;
+}
+
+function padFrame(frame: string, characterCount: number): string {
+  return `${frame}${" ".repeat(Math.max(characterCount - getFrameLength(frame), 0))}`;
+}
+
 function setOpacityPoint(
   points: Map<number, 0 | 1>,
   timeMs: number,
@@ -317,6 +489,20 @@ function createSegmentAttributes(segment: AbouttyTextSegment): string[] {
   if (segment.color) {
     attributes.push(`fill="${escapeXml(segment.color)}"`);
   }
+
+  if (segment.bold) {
+    attributes.push('font-weight="700"');
+  }
+
+  if (segment.italic) {
+    attributes.push('font-style="italic"');
+  }
+
+  return attributes;
+}
+
+function createFrameTextAttributes(segment: AbouttyFramesTextSegment, fallbackFill: string): string[] {
+  const attributes = [`fill="${escapeXml(segment.color ?? fallbackFill)}"`];
 
   if (segment.bold) {
     attributes.push('font-weight="700"');

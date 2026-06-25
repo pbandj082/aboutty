@@ -99,6 +99,27 @@
                 "required": ["cwd"]
               }
             }
+          },
+          {
+            "if": {
+              "properties": {
+                "type": { "const": "command" }
+              },
+              "required": ["type"]
+            },
+            "then": {
+              "properties": {
+                "text": {
+                  "not": {
+                    "type": "array",
+                    "contains": {
+                      "type": "object",
+                      "required": ["frames"]
+                    }
+                  }
+                }
+              }
+            }
           }
         ],
         "properties": {
@@ -115,36 +136,75 @@
                 "type": "array",
                 "minItems": 1,
                 "items": {
-                  "type": "object",
-                  "additionalProperties": false,
-                  "required": ["value"],
-                  "properties": {
-                    "value": {
-                      "type": "string",
-                      "minLength": 1
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["value"],
+                      "properties": {
+                        "value": {
+                          "type": "string",
+                          "minLength": 1
+                        },
+                        "color": {
+                          "type": "string"
+                        },
+                        "repeat": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "repeatDelayMs": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "typingIntervalMs": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "bold": {
+                          "type": "boolean"
+                        },
+                        "italic": {
+                          "type": "boolean"
+                        }
+                      }
                     },
-                    "color": {
-                      "type": "string"
-                    },
-                    "repeat": {
-                      "type": "integer",
-                      "minimum": 1
-                    },
-                    "repeatDelayMs": {
-                      "type": "number",
-                      "minimum": 0
-                    },
-                    "typingIntervalMs": {
-                      "type": "number",
-                      "minimum": 0
-                    },
-                    "bold": {
-                      "type": "boolean"
-                    },
-                    "italic": {
-                      "type": "boolean"
+                    {
+                      "type": "object",
+                      "additionalProperties": false,
+                      "required": ["frames"],
+                      "properties": {
+                        "frames": {
+                          "type": "array",
+                          "minItems": 1,
+                          "items": {
+                            "type": "string"
+                          }
+                        },
+                        "frameIntervalMs": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "color": {
+                          "type": "string"
+                        },
+                        "repeat": {
+                          "type": "integer",
+                          "minimum": 1
+                        },
+                        "repeatDelayMs": {
+                          "type": "number",
+                          "minimum": 0
+                        },
+                        "bold": {
+                          "type": "boolean"
+                        },
+                        "italic": {
+                          "type": "boolean"
+                        }
+                      }
                     }
-                  }
+                  ]
                 }
               }
             ]

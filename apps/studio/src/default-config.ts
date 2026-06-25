@@ -44,8 +44,8 @@ export const defaultStudioConfig: AbouttyConfig = {
     {
       type: "output",
       text: [
-        { value: "Rendering frames" },
-        { value: "...", repeat: 3, repeatDelayMs: 300, typingIntervalMs: 220, color: "#6ee7b7" }
+        { value: "Rendering " },
+        { frames: ["|", "/", "-", "\\"], frameIntervalMs: 120, color: "#6ee7b7" }
       ]
     },
     { type: "output", typingIntervalMs: 0, text: "Generated ./assets/aboutty.svg" }

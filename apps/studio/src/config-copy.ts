@@ -1,4 +1,4 @@
-import type { AbouttyConfig, AbouttyText } from "@aboutty/core";
+import { isFramesSegment, type AbouttyConfig, type AbouttyText } from "@aboutty/core";
 
 export function cloneConfig(config: AbouttyConfig): AbouttyConfig {
   const cloned: AbouttyConfig = {
@@ -21,5 +21,7 @@ function cloneText(text: AbouttyText): AbouttyText {
     return text;
   }
 
-  return text.map((segment) => ({ ...segment }));
+  return text.map((segment) =>
+    isFramesSegment(segment) ? { ...segment, frames: [...segment.frames] } : { ...segment }
+  );
 }

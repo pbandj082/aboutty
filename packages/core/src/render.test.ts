@@ -200,8 +200,8 @@ describe("renderSvg", () => {
     });
 
     expect(svg).toContain('height="136"');
-    expect(svg).toContain('<text x="10" y="72" fill="#b8c1cc">');
-    expect(svg).toContain('<text x="10" y="112" fill="#b8c1cc">');
+    expect(svg).toContain('<text x="10" y="72" fill="#b8c1cc" xml:space="preserve">');
+    expect(svg).toContain('<text x="10" y="112" fill="#b8c1cc" xml:space="preserve">');
   });
 
   it("replays repeated segment animations with segment typing interval", () => {
@@ -227,6 +227,118 @@ describe("renderSvg", () => {
     expect(svg).toContain("25.001% { opacity: 0; }");
     expect(svg).toContain("37.5% { opacity: 0; }");
     expect(svg).toContain("37.501% { opacity: 1; }");
+  });
+
+  it("renders frame segments at the same text column", () => {
+    const svg = renderSvg({
+      stepIntervalMs: 0,
+      typingIntervalMs: 0,
+      steps: [
+        {
+          type: "output",
+          text: [
+            { value: "Loading " },
+            { frames: ["|", "/", "-", "\\"], frameIntervalMs: 100, repeat: 2, color: "#6ee7b7" }
+          ]
+        }
+      ]
+    });
+
+    expect(svg).toContain("@keyframes aboutty-frame-");
+    expect(svg).toContain('<tspan opacity="0"> </tspan>');
+    expect(svg).toContain('<text x="91.2" y="75.2" fill="#6ee7b7" xml:space="preserve" opacity="0"');
+    expect(svg).toContain('style="animation: aboutty-frame-0 800ms linear 0ms forwards"');
+    expect(svg.split('fill="#6ee7b7"').length - 1).toBe(4);
+  });
+
+  it("cycles frame segments through the full SVG loop when repeat is omitted", () => {
+    const svg = renderSvg({
+      loop: true,
+      stepIntervalMs: 0,
+      typingIntervalMs: 0,
+      steps: [
+        {
+          type: "output",
+          text: [{ frames: ["|", "/"], frameIntervalMs: 100 }]
+        }
+      ]
+    });
+
+    expect(svg).toContain('style="animation: aboutty-frame-0 1400ms linear 0ms infinite"');
+    expect(svg).toContain("14.286% { opacity: 0; }");
+    expect(svg).toContain("14.287% { opacity: 1; }");
+  });
+
+  it("uses frame segment duration before following text", () => {
+    const svg = renderSvg({
+      stepIntervalMs: 0,
+      typingIntervalMs: 0,
+      steps: [
+        {
+          type: "output",
+          text: [
+            { frames: ["", ".", ".."], frameIntervalMs: 50, repeat: 2, repeatDelayMs: 20 },
+            { value: "done" }
+          ]
+        }
+      ]
+    });
+
+    expect(svg).toContain('style="animation: appear 1ms linear 320ms forwards">d</tspan>');
+  });
+
+  it("renders multiline frame segments as synchronized visual lines", () => {
+    const svg = renderSvg({
+      padding: 10,
+      lineHeight: 20,
+      stepIntervalMs: 0,
+      typingIntervalMs: 0,
+      steps: [
+        {
+          type: "output",
+          text: [
+            {
+              frames: ["a\nb", "aa\nbb"],
+              frameIntervalMs: 100,
+              color: "#6ee7b7"
+            }
+          ]
+        },
+        { type: "output", text: "done" }
+      ]
+    });
+
+    expect(svg).toContain('height="116"');
+    expect(svg.match(/@keyframes aboutty-frame-/g)?.length).toBe(4);
+    expect(svg).toContain(">aa</text>");
+    expect(svg).toContain(">bb</text>");
+    expect(svg).toContain('style="animation: appear 1ms linear 200ms forwards">d</tspan>');
+  });
+
+  it("rejects segments that mix value and frames", () => {
+    expect(() =>
+      renderSvg({
+        steps: [
+          {
+            type: "output",
+            text: [{ value: "x", frames: ["y"] } as never]
+          }
+        ]
+      })
+    ).toThrow("steps[0].text[0] must include either value or frames");
+  });
+
+  it("rejects frame segments on command steps", () => {
+    expect(() =>
+      renderSvg({
+        steps: [
+          {
+            type: "command",
+            text: [{ frames: ["|", "/"] }]
+          }
+        ]
+      })
+    ).toThrow("steps[0].text frames segments are only supported for output steps");
   });
 
   it("renders looped animation keyframes when loop is enabled", () => {

@@ -55,8 +55,7 @@ button:focus-visible,
 .github-link:focus-visible,
 input:focus-visible,
 select:focus-visible,
-textarea:focus-visible,
-.json-editor:focus-visible {
+textarea:focus-visible {
   outline: 2px solid #68d6b2;
   outline-offset: 2px;
 }
@@ -829,6 +828,20 @@ h2 {
   font-size: 12px;
 }
 
+.segment-kind-field {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  flex-direction: row;
+  gap: 8px;
+  min-width: 0;
+}
+
+.segment-kind-field select {
+  min-height: 30px;
+  width: auto;
+}
+
 .segment-remove-button {
   min-height: 30px;
   width: 30px;
@@ -841,6 +854,33 @@ h2 {
   resize: vertical;
 }
 
+.segment-value,
+.frame-list {
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+}
+
+.frame-field {
+  display: grid;
+  gap: 6px;
+  min-width: 0;
+}
+
+.frame-field-header {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.frame-remove-button {
+  flex: 0 0 auto;
+  min-height: 28px;
+  width: 28px;
+}
+
 .segment-options {
   align-items: end;
   display: grid;
@@ -850,6 +890,17 @@ h2 {
 }
 
 .segment-options button {
+  width: auto;
+}
+
+.segment-add-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.segment-add-actions .inline-add-button {
+  flex: 1 1 140px;
   width: auto;
 }
 
@@ -879,10 +930,16 @@ h2 {
 }
 
 .json-editor {
+  outline: 0;
   overflow-x: auto;
   overflow-y: hidden;
   resize: none;
   white-space: pre;
+}
+
+.json-editor:focus,
+.json-editor:focus-visible {
+  outline: 0;
 }
 
 .code-block code {
