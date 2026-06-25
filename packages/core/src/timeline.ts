@@ -6,6 +6,7 @@ export interface TimelineLine {
   cwd: string | undefined;
   segments: ReturnType<typeof splitTextIntoLineGroups>[number]["lines"][number];
   startMs: number;
+  contentStartMs: number;
   typingIntervalMs: number;
 }
 
@@ -14,7 +15,11 @@ export function createTimeline(config: ResolvedAbouttyConfig): TimelineLine[] {
   const lines: TimelineLine[] = [];
 
   for (const step of config.steps) {
-    cursor += step.delayMs ?? config.stepIntervalMs;
+    const delayMs = step.delayMs ?? config.stepIntervalMs;
+    const lineStartMs = step.type === "command" ? cursor : cursor + delayMs;
+    const contentStartMs = step.type === "command" ? lineStartMs + delayMs : lineStartMs;
+
+    cursor = contentStartMs;
 
     const typingIntervalMs = step.typingIntervalMs ?? config.typingIntervalMs;
     const lineGroups = splitTextIntoLineGroups(step.text);
@@ -25,7 +30,8 @@ export function createTimeline(config: ResolvedAbouttyConfig): TimelineLine[] {
           kind: step.type,
           cwd: step.type === "command" ? step.cwd ?? config.cwd : undefined,
           segments,
-          startMs: cursor,
+          startMs: groupIndex === 0 ? lineStartMs : cursor,
+          contentStartMs: cursor,
           typingIntervalMs
         });
       }

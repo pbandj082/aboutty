@@ -144,10 +144,22 @@ describe("renderSvg", () => {
       steps: [{ type: "command", text: "ab", delayMs: 100 }]
     });
 
+    expect(svg).toContain('style="animation: appear 86400000ms step-end 0ms forwards"> $ </tspan>');
     expect(svg).toContain('style="animation: appear 86400000ms step-end 100ms forwards"');
     expect(svg).toContain('style="animation: appear 86400000ms step-end 140ms forwards"');
     expect(svg).toContain(">a</tspan>");
     expect(svg).toContain(">b</tspan>");
+  });
+
+  it("uses the step interval before command text after rendering the prompt", () => {
+    const svg = renderSvg({
+      stepIntervalMs: 500,
+      typingIntervalMs: 0,
+      steps: [{ type: "command", text: "a" }]
+    });
+
+    expect(svg).toContain('style="animation: appear 86400000ms step-end 0ms forwards"> $ </tspan>');
+    expect(svg).toContain('style="animation: appear 86400000ms step-end 500ms forwards">a</tspan>');
   });
 
   it("uses the step interval before every step", () => {

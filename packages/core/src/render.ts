@@ -77,7 +77,7 @@ export function renderSvg(config: AbouttyConfig): string {
           : "";
       const contents = renderLineSegments(
         line.segments,
-        line.startMs,
+        line.contentStartMs,
         line.typingIntervalMs,
         animationContext,
         {

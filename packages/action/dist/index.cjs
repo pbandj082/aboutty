@@ -19424,7 +19424,10 @@ function createTimeline(config) {
   let cursor = 0;
   const lines = [];
   for (const step of config.steps) {
-    cursor += step.delayMs ?? config.stepIntervalMs;
+    const delayMs = step.delayMs ?? config.stepIntervalMs;
+    const lineStartMs = step.type === "command" ? cursor : cursor + delayMs;
+    const contentStartMs = step.type === "command" ? lineStartMs + delayMs : lineStartMs;
+    cursor = contentStartMs;
     const typingIntervalMs = step.typingIntervalMs ?? config.typingIntervalMs;
     const lineGroups = splitTextIntoLineGroups(step.text);
     for (const [groupIndex, group] of lineGroups.entries()) {
@@ -19433,7 +19436,8 @@ function createTimeline(config) {
           kind: step.type,
           cwd: step.type === "command" ? step.cwd ?? config.cwd : void 0,
           segments,
-          startMs: cursor,
+          startMs: groupIndex === 0 ? lineStartMs : cursor,
+          contentStartMs: cursor,
           typingIntervalMs
         });
       }
@@ -19669,7 +19673,7 @@ ${errors.map((error2) => `- ${error2}`).join("\n")}`);
     const y = chromeHeight + resolved.padding + textBaselineOffset + index * resolved.lineHeight;
     const fill = line.kind === "command" ? resolved.theme.command : resolved.theme.output;
     const prefix = line.kind === "command" ? renderPromptPrefix(resolved, line.cwd, line.startMs, animationContext) : "";
-    const contents = renderLineSegments(line.segments, line.startMs, line.typingIntervalMs, animationContext, {
+    const contents = renderLineSegments(line.segments, line.contentStartMs, line.typingIntervalMs, animationContext, {
       fallbackFill: fill,
       fontSize: resolved.fontSize,
       x: resolved.padding,
