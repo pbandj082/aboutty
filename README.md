@@ -12,7 +12,7 @@ repository and embedded like a normal image.
 Use the static Studio to design a configuration visually, preview the SVG, and
 download the files you need:
 
-https://gateway.irys.xyz/9PzNAyjaBxVBFPNb4LjbSkyLeWGdBs3ik9HthAWC3KD2/
+https://gateway.irys.xyz/CW5U1FXpTtUCVV6PRVZyKuHN693RxqJKehfhWetYMVtr/
 
 The Studio can export:
 
