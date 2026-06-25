@@ -124,13 +124,14 @@ button:disabled {
 }
 
 button[data-action^="remove-"] {
-  background: var(--md-sys-color-error-container);
-  color: var(--md-sys-color-on-error-container);
+  background: transparent;
+  border: 0;
+  color: var(--md-sys-color-on-surface-variant);
 }
 
 button[data-action^="remove-"]:hover {
-  background: var(--md-ref-palette-error-container-hover);
-  color: var(--md-sys-color-on-error-container);
+  background: rgb(193 201 194 / 0.08);
+  color: var(--md-sys-color-on-surface);
 }
 
 .button-icon {
@@ -709,16 +710,6 @@ h2 {
   min-height: 34px;
   padding: 0;
   width: 34px;
-}
-
-.icon-button[data-action^="remove-"] {
-  background: var(--md-sys-color-error-container);
-  color: var(--md-sys-color-on-error-container);
-}
-
-.icon-button[data-action^="remove-"]:hover {
-  background: var(--md-ref-palette-error-container-hover);
-  color: var(--md-sys-color-on-error-container);
 }
 
 .step-card {
