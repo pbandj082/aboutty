@@ -41,41 +41,60 @@
     },
     {
       "type": "command",
-      "text": "cat ./profile.md"
+      "text": "gh api users/aboutty"
     },
     {
       "type": "output",
+      "typingIntervalMs": 0,
       "text": [
         {
-          "value": "Building terminal-flavored README animations\n",
-          "color": "#f4f7f2"
+          "value": "login:      ",
+          "color": "#a6adc8"
         },
         {
-          "value": "Stack: TypeScript, SVG, GitHub Actions\n",
-          "color": "#8bd5ca"
+          "value": "aboutty\n",
+          "color": "#f4f7f2",
+          "bold": true
         },
         {
-          "value": "Focus: tiny dependencies, static hosting, clean docs",
-          "color": "#a6e3a1"
+          "value": "followers:  ",
+          "color": "#a6adc8"
+        },
+        {
+          "value": "128\n",
+          "color": "#a6e3a1",
+          "bold": true
+        },
+        {
+          "value": "following:  ",
+          "color": "#a6adc8"
+        },
+        {
+          "value": "24",
+          "color": "#8bd5ca",
+          "bold": true
         }
       ]
     },
     {
       "type": "command",
-      "text": "aboutty --profile --out ./assets/profile.svg"
+      "text": "gh api graphql -f query=@profile.graphql"
     },
     {
       "type": "output",
       "text": [
         {
-          "value": "Writing profile animation",
+          "value": "collecting profile data\n",
           "color": "#f4f7f2"
         },
         {
-          "value": "...",
-          "repeat": 2,
-          "repeatDelayMs": 280,
-          "typingIntervalMs": 160,
+          "frames": [
+            "activity      pending\nlanguages     pending\nrecent events  pending",
+            "activity      ok\nlanguages     pending\nrecent events  pending",
+            "activity      ok\nlanguages     ok\nrecent events  pending",
+            "activity      ok\nlanguages     ok\nrecent events  ok"
+          ],
+          "frameIntervalMs": 200,
           "color": "#a6e3a1"
         }
       ]
@@ -83,7 +102,30 @@
     {
       "type": "output",
       "typingIntervalMs": 0,
-      "text": "Done ./assets/profile.svg"
+      "text": "CONTRIBUTIONS  1,248\nTOP LANGUAGE   TypeScript\nRECENT         pushed aboutty@main"
+    },
+    {
+      "type": "command",
+      "text": "aboutty profile.json --out assets/profile.svg"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "frames": [
+            "write profile header   [####------]",
+            "write activity block   [######----]",
+            "write language summary [########>-]",
+            "write language summary [==========]"
+          ],
+          "frameIntervalMs": 160,
+          "color": "#a6e3a1"
+        },
+        {
+          "value": "\nGenerated assets/profile.svg",
+          "color": "#f4f7f2"
+        }
+      ]
     }
   ]
 }

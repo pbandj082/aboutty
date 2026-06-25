@@ -40,24 +40,19 @@
     },
     {
       "type": "command",
-      "text": "docker build -t aboutty-demo ."
+      "text": "DOCKER_BUILDKIT=1 docker build -t aboutty-demo ."
     },
     {
       "type": "output",
       "text": [
         {
-          "value": "Sending build context\n",
-          "color": "#cbd5e1"
-        },
-        {
-          "value": "Resolving layers",
-          "color": "#e5eefb"
-        },
-        {
-          "value": "...",
-          "repeat": 3,
-          "repeatDelayMs": 260,
-          "typingIntervalMs": 140,
+          "frames": [
+            "[+] Building 0.2s (2/8)\n => [internal] load build definition from Dockerfile\n => transferring dockerfile: 234B",
+            "[+] Building 0.7s (4/8)\n => [internal] load build definition from Dockerfile\n => [internal] load metadata for docker.io/library/node:24-alpine\n => [1/5] FROM docker.io/library/node:24-alpine",
+            "[+] Building 1.4s (6/8)\n => CACHED [2/5] WORKDIR /app\n => [3/5] COPY package.json pnpm-lock.yaml ./\n => [4/5] RUN corepack enable && pnpm install --frozen-lockfile",
+            "[+] Building 2.1s (8/8)\n => [5/5] COPY . .\n => exporting to image\n => naming to docker.io/library/aboutty-demo"
+          ],
+          "frameIntervalMs": 260,
           "color": "#38bdf8"
         }
       ]
@@ -65,7 +60,51 @@
     {
       "type": "output",
       "typingIntervalMs": 0,
-      "text": "Successfully tagged aboutty-demo:latest"
+      "text": [
+        {
+          "value": "exporting layers\n",
+          "color": "#cbd5e1"
+        },
+        {
+          "frames": [
+            {
+              "value": "layer sha256:1a2b █████░░░░░░░░░░░░░░░ 24%",
+              "color": "#7dd3fc"
+            },
+            {
+              "value": "layer sha256:1a2b ██████████░░░░░░░░░░ 52%",
+              "color": "#38bdf8"
+            },
+            {
+              "value": "layer sha256:1a2b █████████████████░░░ 84%",
+              "color": "#0ea5e9"
+            },
+            {
+              "value": "layer sha256:1a2b ████████████████████ 100%",
+              "color": "#22c55e",
+              "bold": true
+            }
+          ],
+          "frameIntervalMs": 160,
+          "color": "#38bdf8"
+        },
+        {
+          "value": "\n",
+          "color": "#cbd5e1"
+        },
+        {
+          "value": "Successfully built ",
+          "color": "#cbd5e1"
+        },
+        {
+          "value": "8f41c2d9a6ab\n",
+          "color": "#38bdf8"
+        },
+        {
+          "value": "Successfully tagged aboutty-demo:latest",
+          "color": "#cbd5e1"
+        }
+      ]
     },
     {
       "type": "command",
@@ -74,7 +113,7 @@
     {
       "type": "output",
       "typingIntervalMs": 0,
-      "text": "Server listening on http://localhost:3000"
+      "text": "ready - started server on 0.0.0.0:3000\nurl   - http://localhost:3000"
     }
   ]
 }

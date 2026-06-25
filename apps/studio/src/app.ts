@@ -1,13 +1,16 @@
 import { renderSvg, type AbouttyConfig } from "@aboutty/core";
+import abouttySchema from "../../../schema/aboutty.schema.json";
 import { createConfigControls } from "./controls";
 import { defaultStudioConfig } from "./default-config";
 import { downloadText, workflowTemplate } from "./downloads";
 import { escapeHtml } from "./html";
-import { dropdownTriangleIcon, icon, iconButton } from "./icons";
+import { dropdownTriangleIcon, icon, iconButton, npmLogoLabel } from "./icons";
 import { createPreview } from "./preview";
 import { createTemplateConfig, studioTemplates } from "./templates";
 
-type CodeTab = "config" | "workflow";
+type CodeTab = "config" | "workflow" | "schema";
+
+const schemaJson = JSON.stringify(abouttySchema, null, 2);
 
 export function mountApp(target: HTMLElement): void {
   let currentSvg = "";
@@ -26,9 +29,14 @@ export function mountApp(target: HTMLElement): void {
         <div>
           <h1>aboutty</h1>
         </div>
-        <a class="github-link" href="https://github.com/pbandj082/aboutty" target="_blank" rel="noreferrer" aria-label="Open aboutty on GitHub">
-          ${iconButton("github", "GitHub")}
-        </a>
+        <nav class="header-actions" aria-label="Project links">
+          <a class="external-link npm-link" href="https://www.npmjs.com/org/aboutty" target="_blank" rel="noreferrer" aria-label="Open aboutty on npm">
+            ${npmLogoLabel()}
+          </a>
+          <a class="external-link github-link" href="https://github.com/pbandj082/aboutty" target="_blank" rel="noreferrer" aria-label="Open aboutty on GitHub">
+            ${iconButton("github", "GitHub")}
+          </a>
+        </nav>
       </header>
       <section class="workspace" aria-label="aboutty generator">
         <div class="editor-pane" id="controls-dialog" data-controls-dialog aria-labelledby="controls-title" tabindex="-1">
@@ -38,7 +46,7 @@ export function mountApp(target: HTMLElement): void {
             </button>
             <h2 id="controls-title">Controls</h2>
             <div class="template-menu" data-template-menu>
-              <button type="button" class="template-button" data-action="toggle-template-menu" data-template-button aria-haspopup="menu" aria-expanded="false">
+              <button type="button" class="template-button outline-button" data-action="toggle-template-menu" data-template-button aria-haspopup="menu" aria-expanded="false">
                 <span class="button-label">Template</span>
                 ${dropdownTriangleIcon()}
               </button>
@@ -83,12 +91,13 @@ export function mountApp(target: HTMLElement): void {
               <div class="tabs" role="tablist" aria-label="code views">
                 <button type="button" class="tab-button" data-action="select-code-tab" data-code-tab="config">aboutty.json</button>
                 <button type="button" class="tab-button" data-action="select-code-tab" data-code-tab="workflow">aboutty.yml</button>
+                <button type="button" class="tab-button" data-action="select-code-tab" data-code-tab="schema">schema.json</button>
               </div>
             </div>
             <div class="code-block">
               <div class="code-actions">
-                <button type="button" data-action="download-code" data-download-code>${iconButton("download", "Download")}</button>
-                <button type="button" data-action="copy-code" data-copy-code>${iconButton("copy", "Copy")}</button>
+                <button type="button" class="text-button" data-action="copy-code" data-copy-code>${iconButton("copy", "Copy")}</button>
+                <button type="button" class="outline-button" data-action="download-code" data-download-code>${iconButton("download", "Download")}</button>
               </div>
               <textarea class="json-editor" data-json-editor spellcheck="false" aria-label="Edit aboutty.json"></textarea>
               <pre data-code-pre><code data-code-output></code></pre>
@@ -194,7 +203,7 @@ export function mountApp(target: HTMLElement): void {
 
       resizeJsonEditor();
     } else {
-      codeRoot.textContent = currentWorkflow;
+      codeRoot.textContent = getActiveCode();
     }
 
     setButtonLabel(downloadRoot, "Download");
@@ -300,7 +309,15 @@ export function mountApp(target: HTMLElement): void {
   }
 
   function getActiveCode(): string {
-    return activeCodeTab === "config" ? currentJson : currentWorkflow;
+    if (activeCodeTab === "config") {
+      return currentJson;
+    }
+
+    if (activeCodeTab === "workflow") {
+      return currentWorkflow;
+    }
+
+    return schemaJson;
   }
 
   target.addEventListener("click", async (event) => {
@@ -353,7 +370,7 @@ export function mountApp(target: HTMLElement): void {
     }
 
     if (button.dataset.action === "select-code-tab") {
-      activeCodeTab = button.dataset.codeTab === "workflow" ? "workflow" : "config";
+      activeCodeTab = getCodeTab(button.dataset.codeTab);
       updateCodePane();
     }
 
@@ -364,8 +381,10 @@ export function mountApp(target: HTMLElement): void {
     if (button.dataset.action === "download-code") {
       if (activeCodeTab === "config") {
         downloadText("aboutty.json", "application/json", currentJson);
-      } else {
+      } else if (activeCodeTab === "workflow") {
         downloadText("aboutty.yml", "text/yaml", currentWorkflow);
+      } else {
+        downloadText("aboutty.schema.json", "application/json", schemaJson);
       }
     }
 
@@ -454,6 +473,10 @@ function setLoop(config: AbouttyConfig, enabled: boolean): AbouttyConfig {
 
   const { loop: _loop, ...nextConfig } = config;
   return nextConfig;
+}
+
+function getCodeTab(value: string | undefined): CodeTab {
+  return value === "workflow" || value === "schema" ? value : "config";
 }
 
 function setButtonLabel(button: HTMLButtonElement, label: string): void {

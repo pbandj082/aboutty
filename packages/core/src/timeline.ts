@@ -1,10 +1,10 @@
 import type { AbouttyStep, ResolvedAbouttyConfig } from "./config.js";
-import { getSegmentAnimationDurationMs, splitTextIntoLines } from "./text.js";
+import { getSegmentAnimationDurationMs, splitTextIntoLineGroups } from "./text.js";
 
 export interface TimelineLine {
   kind: AbouttyStep["type"];
   cwd: string | undefined;
-  segments: ReturnType<typeof splitTextIntoLines>[number];
+  segments: ReturnType<typeof splitTextIntoLineGroups>[number]["lines"][number];
   startMs: number;
   typingIntervalMs: number;
 }
@@ -17,21 +17,26 @@ export function createTimeline(config: ResolvedAbouttyConfig): TimelineLine[] {
     cursor += step.delayMs ?? config.stepIntervalMs;
 
     const typingIntervalMs = step.typingIntervalMs ?? config.typingIntervalMs;
-    const stepLines = splitTextIntoLines(step.text);
+    const lineGroups = splitTextIntoLineGroups(step.text);
 
-    for (const [lineIndex, segments] of stepLines.entries()) {
-      lines.push({
-        kind: step.type,
-        cwd: step.type === "command" ? step.cwd ?? config.cwd : undefined,
-        segments,
-        startMs: cursor,
-        typingIntervalMs
-      });
+    for (const [groupIndex, group] of lineGroups.entries()) {
+      for (const segments of group.lines) {
+        lines.push({
+          kind: step.type,
+          cwd: step.type === "command" ? step.cwd ?? config.cwd : undefined,
+          segments,
+          startMs: cursor,
+          typingIntervalMs
+        });
+      }
 
-      const typingDurationMs = getTypingDurationMs(segments, typingIntervalMs);
+      const typingDurationMs = group.lines.reduce(
+        (durationMs, segments) => Math.max(durationMs, getTypingDurationMs(segments, typingIntervalMs)),
+        0
+      );
       cursor += typingDurationMs;
 
-      if (lineIndex < stepLines.length - 1) {
+      if (groupIndex < lineGroups.length - 1) {
         cursor += typingIntervalMs;
       }
     }
@@ -41,7 +46,7 @@ export function createTimeline(config: ResolvedAbouttyConfig): TimelineLine[] {
 }
 
 function getTypingDurationMs(
-  segments: ReturnType<typeof splitTextIntoLines>[number],
+  segments: ReturnType<typeof splitTextIntoLineGroups>[number]["lines"][number],
   fallbackIntervalMs: number
 ): number {
   return segments.reduce(

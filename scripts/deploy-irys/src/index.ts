@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
-import { readdir, readFile, stat } from "node:fs/promises";
+import { readdir, readFile, rm, stat } from "node:fs/promises";
 import { homedir } from "node:os";
-import { join, resolve } from "node:path";
+import { basename, dirname, join, resolve } from "node:path";
 import { createInterface } from "node:readline/promises";
 import { parseArgs } from "node:util";
 import { Uploader } from "@irys/upload";
@@ -55,7 +55,10 @@ if (!values.yes && process.env.IRYS_SKIP_CONFIRM !== "true") {
   await confirmUpload();
 }
 
+await removeUploadCacheFiles(distDir);
+
 const receipt = await irys.uploadFolder(distDir, {
+  keepDeleted: false,
   indexFile: values.index ?? "index.html"
 });
 
@@ -65,7 +68,7 @@ if (!receipt) {
 
 console.log(`Uploaded ${distDir}`);
 console.log(`Transaction: ${receipt.id}`);
-console.log(`Gateway: https://gateway.irys.xyz/${receipt.id}`);
+console.log(`Gateway: https://gateway.irys.xyz/${receipt.id}/`);
 
 interface FolderInfo {
   fileCount: number;
@@ -104,6 +107,21 @@ async function getFolderInfo(path: string): Promise<FolderInfo> {
   }
 
   return { fileCount, totalBytes };
+}
+
+async function removeUploadCacheFiles(path: string): Promise<void> {
+  const parentDir = dirname(path);
+  const folderName = basename(path);
+  const cacheFiles = [
+    join(parentDir, `${folderName}-errors.txt`),
+    join(parentDir, `${folderName}-id.txt`),
+    join(parentDir, `${folderName}-manifest.csv`),
+    join(parentDir, `${folderName}-manifest.json`)
+  ];
+
+  for (const cacheFile of cacheFiles) {
+    await rm(cacheFile, { force: true });
+  }
 }
 
 function printPreflight({

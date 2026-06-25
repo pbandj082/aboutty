@@ -2,7 +2,7 @@ import type { AbouttyConfig } from "@aboutty/core";
 
 export const defaultStudioConfig: AbouttyConfig = {
   "$schema": "https://aboutty.dev/schema/aboutty.schema.json",
-  title: "aboutty demo",
+  title: "aboutty tutorial",
   username: "aboutty",
   usernameSeparator: "@",
   hostname: "dev",
@@ -35,19 +35,56 @@ export const defaultStudioConfig: AbouttyConfig = {
     },
     {
       type: "command",
+      text: "cat aboutty.json"
+    },
+    {
+      type: "output",
+      typingIntervalMs: 0,
+      text: "{\n  \"title\": \"aboutty demo\",\n  \"prompt\": \"$\",\n  \"steps\": [\n    { \"type\": \"command\", \"text\": \"pnpm test\" },\n    { \"type\": \"output\", \"text\": \"Tests passed\" }\n  ]\n}"
+    },
+    {
+      type: "command",
       text: [
         { value: "npx" },
         { value: " aboutty", color: "#6ee7b7" },
-        { value: " ./aboutty.json --out ./assets/aboutty.svg" }
+        { value: " aboutty.json --out assets/aboutty.svg" }
       ]
     },
     {
       type: "output",
       text: [
-        { value: "Rendering frames" },
-        { value: "...", repeat: 3, repeatDelayMs: 300, typingIntervalMs: 220, color: "#6ee7b7" }
+        { value: "aboutty\n", color: "#94a3b8" },
+        {
+          frames: [
+            "read   aboutty.json",
+            "check  schema/aboutty.schema.json",
+            "build  terminal timeline",
+            "write  assets/aboutty.svg"
+          ],
+          frameIntervalMs: 180,
+          color: "#f8fafc"
+        }
       ]
     },
-    { type: "output", typingIntervalMs: 0, text: "Generated ./assets/aboutty.svg" }
+    {
+      type: "output",
+      typingIntervalMs: 0,
+      text: [
+        { value: "Generated ", color: "#f8fafc" },
+        { value: "assets/aboutty.svg", color: "#6ee7b7", bold: true }
+      ]
+    },
+    {
+      type: "command",
+      text: "printf '<img src=\"assets/aboutty.svg\" alt=\"aboutty\" />\\n' >> README.md"
+    },
+    {
+      type: "output",
+      typingIntervalMs: 0,
+      text: [
+        { value: "README.md ", color: "#94a3b8" },
+        { value: "updated", color: "#6ee7b7", bold: true }
+      ]
+    }
   ]
 };

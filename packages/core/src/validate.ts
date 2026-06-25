@@ -15,6 +15,10 @@ export function validateConfig(config: AbouttyConfig): string[] {
 
     errors.push(...validateText(step.text, `steps[${index}].text`));
 
+    if (step.type === "command" && hasFramesSegment(step.text)) {
+      errors.push(`steps[${index}].text frames segments are only supported for output steps`);
+    }
+
     if (step.delayMs !== undefined && (!Number.isFinite(step.delayMs) || step.delayMs < 0)) {
       errors.push(`steps[${index}].delayMs must be a non-negative number`);
     }
@@ -79,6 +83,12 @@ export function validateConfig(config: AbouttyConfig): string[] {
   return errors;
 }
 
+function hasFramesSegment(text: unknown): boolean {
+  return Array.isArray(text) && text.some((segment) =>
+    Boolean(segment && typeof segment === "object" && !Array.isArray(segment) && "frames" in segment)
+  );
+}
+
 function validateTheme(theme: unknown): string[] {
   const errors: string[] = [];
 
@@ -140,9 +150,15 @@ function validateText(text: unknown, path: string): string[] {
     }
 
     const candidate = segment as Record<string, unknown>;
+    const hasValue = candidate.value !== undefined;
+    const hasFrames = candidate.frames !== undefined;
 
-    if (typeof candidate.value !== "string" || candidate.value.length === 0) {
+    if (hasValue === hasFrames) {
+      errors.push(`${path}[${index}] must include either value or frames`);
+    } else if (hasValue && (typeof candidate.value !== "string" || candidate.value.length === 0)) {
       errors.push(`${path}[${index}].value must be a non-empty string`);
+    } else if (hasFrames) {
+      errors.push(...validateFrames(candidate.frames, `${path}[${index}].frames`));
     }
 
     if (candidate.color !== undefined && typeof candidate.color !== "string") {
@@ -169,13 +185,25 @@ function validateText(text: unknown, path: string): string[] {
       }
     }
 
+    if (candidate.frameIntervalMs !== undefined) {
+      if (
+        !hasFrames ||
+        typeof candidate.frameIntervalMs !== "number" ||
+        !Number.isFinite(candidate.frameIntervalMs) ||
+        candidate.frameIntervalMs < 0
+      ) {
+        errors.push(`${path}[${index}].frameIntervalMs must be a non-negative number on frames segments`);
+      }
+    }
+
     if (candidate.typingIntervalMs !== undefined) {
       if (
+        !hasValue ||
         typeof candidate.typingIntervalMs !== "number" ||
         !Number.isFinite(candidate.typingIntervalMs) ||
         candidate.typingIntervalMs < 0
       ) {
-        errors.push(`${path}[${index}].typingIntervalMs must be a non-negative number`);
+        errors.push(`${path}[${index}].typingIntervalMs must be a non-negative number on value segments`);
       }
     }
 
@@ -185,6 +213,49 @@ function validateText(text: unknown, path: string): string[] {
 
     if (candidate.italic !== undefined && typeof candidate.italic !== "boolean") {
       errors.push(`${path}[${index}].italic must be a boolean`);
+    }
+  }
+
+  return errors;
+}
+
+function validateFrames(frames: unknown, path: string): string[] {
+  const errors: string[] = [];
+
+  if (!Array.isArray(frames)) {
+    errors.push(`${path} must be a non-empty frame array`);
+    return errors;
+  }
+
+  if (frames.length === 0) {
+    errors.push(`${path} must include at least one frame`);
+    return errors;
+  }
+
+  for (const [index, frame] of frames.entries()) {
+    if (typeof frame !== "string") {
+      if (!frame || typeof frame !== "object" || Array.isArray(frame)) {
+        errors.push(`${path}[${index}] must be a string or frame object`);
+        continue;
+      }
+
+      const candidate = frame as Record<string, unknown>;
+
+      if (typeof candidate.value !== "string") {
+        errors.push(`${path}[${index}].value must be a string`);
+      }
+
+      if (candidate.color !== undefined && typeof candidate.color !== "string") {
+        errors.push(`${path}[${index}].color must be a string`);
+      }
+
+      if (candidate.bold !== undefined && typeof candidate.bold !== "boolean") {
+        errors.push(`${path}[${index}].bold must be a boolean`);
+      }
+
+      if (candidate.italic !== undefined && typeof candidate.italic !== "boolean") {
+        errors.push(`${path}[${index}].italic must be a boolean`);
+      }
     }
   }
 

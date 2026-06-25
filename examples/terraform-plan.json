@@ -1,0 +1,141 @@
+{
+  "$schema": "../schema/aboutty.schema.json",
+  "title": "terraform plan",
+  "username": "infra",
+  "usernameSeparator": "@",
+  "hostname": "workspace",
+  "cwdSeparator": ":",
+  "cwd": "~",
+  "prompt": "$",
+  "stepIntervalMs": 350,
+  "typingIntervalMs": 28,
+  "theme": {
+    "background": "#0f1020",
+    "border": "#3b2f66",
+    "title": "#ddd6fe",
+    "username": "#c4b5fd",
+    "usernameSeparator": "#a78bfa",
+    "hostname": "#93c5fd",
+    "cwdSeparator": "#818cf8",
+    "cwd": "#bfdbfe",
+    "prompt": "#8b5cf6",
+    "text": "#f8fafc",
+    "command": "#ede9fe",
+    "output": "#dbeafe"
+  },
+  "steps": [
+    {
+      "type": "command",
+      "text": "terraform init"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "value": "Initializing the backend...\n",
+          "color": "#dbeafe"
+        },
+        {
+          "value": "Initializing provider plugins...\n",
+          "color": "#dbeafe"
+        },
+        {
+          "frames": [
+            "- Finding hashicorp/aws versions matching \"~> 5.0\"...",
+            "\\ Installing hashicorp/aws provider...",
+            "| Installing hashicorp/aws provider...",
+            "/ Installed hashicorp/aws provider (signed by HashiCorp)"
+          ],
+          "frameIntervalMs": 180,
+          "color": "#c4b5fd"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "Terraform has been successfully initialized!"
+    },
+    {
+      "type": "command",
+      "text": "terraform plan -out=tfplan"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "frames": [
+            "module.web.aws_vpc.main: Refreshing state... [id=vpc-0a12]",
+            "module.web.aws_subnet.public[0]: Refreshing state... [id=subnet-04d1]",
+            "module.web.aws_security_group.app: Refreshing state... [id=sg-089e]",
+            "data.aws_ami.alpine: Reading...",
+            "data.aws_ami.alpine: Read complete after 1s [id=ami-0a1b2c3d]"
+          ],
+          "frameIntervalMs": 170,
+          "color": "#93c5fd"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": [
+        {
+          "value": "Terraform will perform the following actions:\n\n",
+          "color": "#dbeafe"
+        },
+        {
+          "value": "  # aws_instance.web will be updated in-place\n",
+          "color": "#c4b5fd"
+        },
+        {
+          "value": "  ~ resource \"aws_instance\" \"web\" {\n",
+          "color": "#dbeafe"
+        },
+        {
+          "value": "      ~ instance_type = \"t3.micro\" -> \"t3.small\"\n",
+          "color": "#facc15"
+        },
+        {
+          "value": "      - monitoring    = false -> null\n",
+          "color": "#f87171"
+        },
+        {
+          "value": "      + tags          = {\n          + \"Service\" = \"aboutty\"\n        }\n",
+          "color": "#86efac"
+        },
+        {
+          "value": "    }\n\n",
+          "color": "#dbeafe"
+        },
+        {
+          "frames": [
+            {
+              "value": "plan graph ████░░░░░░░░░░░░ 25%",
+              "color": "#818cf8"
+            },
+            {
+              "value": "plan graph ████████████░░░░ 72%",
+              "color": "#c4b5fd"
+            },
+            {
+              "value": "plan graph ████████████████ 100%",
+              "color": "#86efac",
+              "bold": true
+            },
+            {
+              "value": "Plan: 0 to add, 1 to change, 0 to destroy.",
+              "color": "#c4b5fd"
+            },
+            {
+              "value": "Saved the plan to: tfplan",
+              "color": "#93c5fd"
+            }
+          ],
+          "frameIntervalMs": 180,
+          "color": "#c4b5fd"
+        }
+      ]
+    }
+  ]
+}

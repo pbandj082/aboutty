@@ -1,0 +1,78 @@
+{
+  "$schema": "../schema/aboutty.schema.json",
+  "title": "github actions",
+  "username": "gh",
+  "usernameSeparator": "@",
+  "hostname": "actions",
+  "cwdSeparator": ":",
+  "cwd": "~",
+  "prompt": "$",
+  "stepIntervalMs": 350,
+  "typingIntervalMs": 26,
+  "theme": {
+    "background": "#0d1117",
+    "border": "#30363d",
+    "title": "#c9d1d9",
+    "username": "#58a6ff",
+    "usernameSeparator": "#79c0ff",
+    "hostname": "#a5d6ff",
+    "cwdSeparator": "#79c0ff",
+    "cwd": "#c9d1d9",
+    "prompt": "#3fb950",
+    "text": "#c9d1d9",
+    "command": "#f0f6fc",
+    "output": "#c9d1d9"
+  },
+  "steps": [
+    {
+      "type": "command",
+      "text": "gh run watch 482913654 --compact"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "frames": [
+            "Refreshing run status |",
+            "Refreshing run status /",
+            "Refreshing run status -",
+            "Refreshing run status \\",
+            "Refreshing run status ok"
+          ],
+          "frameIntervalMs": 120,
+          "color": "#58a6ff"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "frames": [
+            "+----------------------+----------+---------+\n| Job                  | Status   | Time    |\n+----------------------+----------+---------+\n| build                | running  | 00:18   |\n| test                 | queued   | --      |\n| release-dry-run      | queued   | --      |\n+----------------------+----------+---------+",
+            "+----------------------+----------+---------+\n| Job                  | Status   | Time    |\n+----------------------+----------+---------+\n| build                | success  | 00:32   |\n| test                 | running  | 00:11   |\n| release-dry-run      | queued   | --      |\n+----------------------+----------+---------+",
+            "+----------------------+----------+---------+\n| Job                  | Status   | Time    |\n+----------------------+----------+---------+\n| build                | success  | 00:32   |\n| test                 | success  | 00:45   |\n| release-dry-run      | running  | 00:09   |\n+----------------------+----------+---------+",
+            "+----------------------+----------+---------+\n| Job                  | Status   | Time    |\n+----------------------+----------+---------+\n| build                | success  | 00:32   |\n| test                 | success  | 00:45   |\n| release-dry-run      | success  | 00:21   |\n+----------------------+----------+---------+"
+          ],
+          "frameIntervalMs": 240,
+          "color": "#c9d1d9"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": [
+        {
+          "value": "\n✓ ",
+          "color": "#3fb950",
+          "bold": true
+        },
+        {
+          "value": "Workflow completed successfully",
+          "color": "#c9d1d9"
+        }
+      ]
+    }
+  ]
+}

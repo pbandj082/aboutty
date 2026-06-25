@@ -1,0 +1,93 @@
+{
+  "$schema": "../schema/aboutty.schema.json",
+  "title": "vitest",
+  "username": "ci",
+  "usernameSeparator": "@",
+  "hostname": "runner",
+  "cwdSeparator": ":",
+  "cwd": "~",
+  "prompt": "$",
+  "stepIntervalMs": 350,
+  "typingIntervalMs": 24,
+  "theme": {
+    "background": "#101418",
+    "border": "#28323d",
+    "title": "#d7dee6",
+    "username": "#86efac",
+    "usernameSeparator": "#6ee7b7",
+    "hostname": "#93c5fd",
+    "cwdSeparator": "#7dd3fc",
+    "cwd": "#a7f3d0",
+    "prompt": "#22c55e",
+    "text": "#f8fafc",
+    "command": "#f8fafc",
+    "output": "#d1d5db"
+  },
+  "steps": [
+    {
+      "type": "command",
+      "text": "pnpm test -- --coverage"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "value": " RUN  v4.1.9 /workspace/aboutty\n\n",
+          "color": "#94a3b8"
+        },
+        {
+          "frames": [
+            " ❯ packages/core/src/render.test.ts  (21 tests | 0 failed)",
+            " ✓ packages/core/src/render.test.ts  (21 tests) 84ms",
+            " ✓ packages/cli/src/index.test.ts   (4 tests) 31ms",
+            " ✓ apps/studio/src/config.test.ts    (6 tests) 42ms"
+          ],
+          "frameIntervalMs": 180,
+          "color": "#86efac"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": [
+        {
+          "value": "\n Test Files  ",
+          "color": "#94a3b8"
+        },
+        {
+          "value": "3 passed",
+          "color": "#86efac",
+          "bold": true
+        },
+        {
+          "value": "\n      Tests  ",
+          "color": "#94a3b8"
+        },
+        {
+          "value": "31 passed",
+          "color": "#86efac",
+          "bold": true
+        },
+        {
+          "value": "\n   Duration  1.28s",
+          "color": "#94a3b8"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "frames": [
+            "+-------------------+----------+----------+----------+\n| File              | Stmts    | Branch   | Funcs    |\n+-------------------+----------+----------+----------+\n| render.ts         | ███████░ | 86.4%    | 92.1%    |\n+-------------------+----------+----------+----------+",
+            "+-------------------+----------+----------+----------+\n| File              | Stmts    | Branch   | Funcs    |\n+-------------------+----------+----------+----------+\n| render.ts         | ████████ | 91.8%    | 96.0%    |\n+-------------------+----------+----------+----------+",
+            "+-------------------+----------+----------+----------+\n| File              | Stmts    | Branch   | Funcs    |\n+-------------------+----------+----------+----------+\n| All files         | ████████ | 90.2%    | 95.4%    |\n+-------------------+----------+----------+----------+"
+          ],
+          "frameIntervalMs": 220,
+          "color": "#d1d5db"
+        }
+      ]
+    }
+  ]
+}

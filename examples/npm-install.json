@@ -22,16 +22,103 @@
   "steps": [
     {
       "type": "command",
-      "text": "pnpm add -D aboutty"
+      "text": "pnpm add -D @aboutty/cli"
     },
     {
       "type": "output",
-      "typingIntervalMs": 6,
-      "text": "Packages: +1\nDone"
+      "typingIntervalMs": 0,
+      "text": [
+        {
+          "value": "Packages: +1\n",
+          "color": "#f8fafc"
+        },
+        {
+          "value": "+\n",
+          "color": "#6ee7b7"
+        },
+        {
+          "frames": [
+            "Progress: resolved 12, reused 10, downloaded 0, added 0  [==>-------]",
+            "Progress: resolved 28, reused 24, downloaded 1, added 0  [=====>----]",
+            "Progress: resolved 42, reused 38, downloaded 1, added 1  [========>-]",
+            "Progress: resolved 42, reused 38, downloaded 1, added 1  [==========]"
+          ],
+          "frameIntervalMs": 220,
+          "color": "#6ee7b7"
+        },
+        {
+          "value": "\nInstalling @aboutty/cli ",
+          "color": "#f8fafc"
+        },
+        {
+          "frames": [
+            "| resolving peer deps",
+            "/ fetching tarball",
+            "- linking bin",
+            "\\ building package",
+            "done"
+          ],
+          "frameIntervalMs": 140,
+          "color": "#6ee7b7"
+        },
+        {
+          "value": "\n\ndevDependencies:\n",
+          "color": "#f8fafc"
+        },
+        {
+          "value": "+ @aboutty/cli\n",
+          "color": "#6ee7b7"
+        },
+        {
+          "value": "Done in 1.8s",
+          "color": "#94a3b8"
+        }
+      ]
     },
     {
       "type": "command",
-      "text": "pnpm aboutty ./aboutty.json --out ./assets/aboutty.svg"
+      "text": "pnpm exec aboutty aboutty.json --out assets/aboutty.svg"
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": [
+        {
+          "value": "rendering ",
+          "color": "#94a3b8"
+        },
+        {
+          "frames": [
+            "|",
+            "/",
+            "-",
+            "\\",
+            "done"
+          ],
+          "frameIntervalMs": 120,
+          "color": "#6ee7b7"
+        },
+        {
+          "value": "\n",
+          "color": "#f8fafc"
+        },
+        {
+          "value": "aboutty.json ",
+          "color": "#94a3b8"
+        },
+        {
+          "value": "-> ",
+          "color": "#f8fafc"
+        },
+        {
+          "value": "assets/aboutty.svg\n",
+          "color": "#6ee7b7"
+        },
+        {
+          "value": "Generated in 124ms",
+          "color": "#94a3b8"
+        }
+      ]
     }
   ]
 }

@@ -1,6 +1,6 @@
 import { execFile as execFileCallback } from "node:child_process";
 import { existsSync } from "node:fs";
-import { readFile, writeFile } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
 import { dirname, join, relative, resolve } from "node:path";
 import { parseArgs, promisify } from "node:util";
 import type { AbouttyConfig, AbouttyTextSegment } from "@aboutty/core";
@@ -39,15 +39,10 @@ interface GitHubRepo {
   } | null;
 }
 
-const [repo, commitCount, coreVersion, cliVersion, actionVersion, studioVersion] =
-  await Promise.all([
-    fetchRepo(repoSlug),
-    readGitOutput(["rev-list", "--count", "HEAD"], "unknown"),
-    readPackageVersion("packages/core/package.json"),
-    readPackageVersion("packages/cli/package.json"),
-    readPackageVersion("packages/action/package.json"),
-    readPackageVersion("apps/studio/package.json")
-  ]);
+const [repo, commitCount] = await Promise.all([
+  fetchRepo(repoSlug),
+  readGitOutput(["rev-list", "--count", "HEAD"], "unknown")
+]);
 const updatedAt = new Date().toISOString().replace(/\.\d{3}Z$/, "Z");
 
 const config: AbouttyConfig = {
@@ -107,10 +102,7 @@ const config: AbouttyConfig = {
         ...line("commits", commitCount, "#6ee7b7"),
         ...line("default branch", repo.default_branch, "#93c5fd"),
         ...line("license", repo.license?.spdx_id ?? "unknown", "#f8fafc"),
-        ...line("@aboutty/core", `v${coreVersion}`, "#6ee7b7"),
-        ...line("@aboutty/cli", `v${cliVersion}`, "#6ee7b7"),
-        ...line("@aboutty/studio", `v${studioVersion}`, "#6ee7b7"),
-        ...line("action", `action-v${actionVersion}`, "#6ee7b7"),
+        ...line("packages", "core / cli / studio / action", "#6ee7b7"),
         ...line("updated", updatedAt, "#94a3b8", false)
       ]
     },
@@ -198,13 +190,6 @@ async function readGitOutput(args: string[], fallback: string): Promise<string> 
   } catch {
     return fallback;
   }
-}
-
-async function readPackageVersion(path: string): Promise<string> {
-  const raw = await readFile(resolveWorkspacePath(path), "utf8");
-  const parsed = JSON.parse(raw) as { version?: string };
-
-  return parsed.version ?? "0.0.0";
 }
 
 function line(
