@@ -190,6 +190,20 @@ describe("renderSvg", () => {
     expect(svg).not.toContain("276ms");
   });
 
+  it("positions text baselines inside line-height boxes", () => {
+    const svg = renderSvg({
+      padding: 10,
+      fontSize: 20,
+      lineHeight: 40,
+      typingIntervalMs: 0,
+      steps: [{ type: "output", text: "a\nb" }]
+    });
+
+    expect(svg).toContain('height="136"');
+    expect(svg).toContain('<text x="10" y="72" fill="#b8c1cc">');
+    expect(svg).toContain('<text x="10" y="112" fill="#b8c1cc">');
+  });
+
   it("replays repeated segment animations with segment typing interval", () => {
     const svg = renderSvg({
       typingIntervalMs: 10,

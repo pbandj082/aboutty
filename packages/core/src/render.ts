@@ -11,6 +11,8 @@ import { validateConfig } from "./validate.js";
 
 const chromeHeight = 36;
 const defaultLoopPauseMs = 1200;
+// Approximate alphabetic baseline position within the monospace font box.
+const textBaselineRatio = 0.8;
 
 interface AnimationContext {
   appearAnimationsByStartMs: Map<string, string>;
@@ -34,14 +36,13 @@ export function renderSvg(config: AbouttyConfig): string {
     loopDurationMs: resolved.loop ? getLoopDurationMs(timeline) : undefined,
     nextId: 0
   };
-  const height = Math.max(
-    chromeHeight + resolved.padding + resolved.lineHeight,
-    chromeHeight + resolved.padding * 2 + timeline.length * resolved.lineHeight
-  );
+  const lineCount = Math.max(timeline.length, 1);
+  const textBaselineOffset = getTextBaselineOffset(resolved.fontSize, resolved.lineHeight);
+  const height = chromeHeight + resolved.padding * 2 + lineCount * resolved.lineHeight;
 
   const text = timeline
     .map((line, index) => {
-      const y = chromeHeight + resolved.padding + index * resolved.lineHeight;
+      const y = chromeHeight + resolved.padding + textBaselineOffset + index * resolved.lineHeight;
       const fill = line.kind === "command" ? resolved.theme.command : resolved.theme.output;
       const prefix =
         line.kind === "command"
@@ -55,7 +56,7 @@ export function renderSvg(config: AbouttyConfig): string {
       const contents = renderTypewriterSegments(line.segments, line.startMs, line.typingIntervalMs, animationContext);
 
       return [
-        `<text x="${resolved.padding}" y="${y}" fill="${fill}">`,
+        `<text x="${resolved.padding}" y="${formatNumber(y)}" fill="${fill}">`,
         `${prefix}${contents}`,
         "</text>"
       ].join("");
@@ -291,6 +292,10 @@ function getLoopDurationMs(timeline: ReturnType<typeof createTimeline>): number 
   }, 0);
 
   return Math.max(animationEndMs + defaultLoopPauseMs, 1);
+}
+
+function getTextBaselineOffset(fontSize: number, lineHeight: number): number {
+  return (lineHeight - fontSize) / 2 + fontSize * textBaselineRatio;
 }
 
 function setOpacityPoint(

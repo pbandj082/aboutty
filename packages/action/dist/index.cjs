@@ -19537,6 +19537,7 @@ function validateText(text, path) {
 // ../core/dist/render.js
 var chromeHeight = 36;
 var defaultLoopPauseMs = 1200;
+var textBaselineRatio = 0.8;
 function renderSvg(config) {
   const errors = validateConfig(config);
   if (errors.length > 0) {
@@ -19551,14 +19552,16 @@ ${errors.map((error2) => `- ${error2}`).join("\n")}`);
     loopDurationMs: resolved.loop ? getLoopDurationMs(timeline) : void 0,
     nextId: 0
   };
-  const height = Math.max(chromeHeight + resolved.padding + resolved.lineHeight, chromeHeight + resolved.padding * 2 + timeline.length * resolved.lineHeight);
+  const lineCount = Math.max(timeline.length, 1);
+  const textBaselineOffset = getTextBaselineOffset(resolved.fontSize, resolved.lineHeight);
+  const height = chromeHeight + resolved.padding * 2 + lineCount * resolved.lineHeight;
   const text = timeline.map((line, index) => {
-    const y = chromeHeight + resolved.padding + index * resolved.lineHeight;
+    const y = chromeHeight + resolved.padding + textBaselineOffset + index * resolved.lineHeight;
     const fill = line.kind === "command" ? resolved.theme.command : resolved.theme.output;
     const prefix = line.kind === "command" ? renderPromptPrefix(resolved, line.cwd, line.startMs, animationContext) : "";
     const contents = renderTypewriterSegments(line.segments, line.startMs, line.typingIntervalMs, animationContext);
     return [
-      `<text x="${resolved.padding}" y="${y}" fill="${fill}">`,
+      `<text x="${resolved.padding}" y="${formatNumber(y)}" fill="${fill}">`,
       `${prefix}${contents}`,
       "</text>"
     ].join("");
@@ -19707,6 +19710,9 @@ function getLoopDurationMs(timeline) {
     return Math.max(endMs, line.startMs + lineDurationMs);
   }, 0);
   return Math.max(animationEndMs + defaultLoopPauseMs, 1);
+}
+function getTextBaselineOffset(fontSize, lineHeight) {
+  return (lineHeight - fontSize) / 2 + fontSize * textBaselineRatio;
 }
 function setOpacityPoint(points, timeMs, opacity, totalDurationMs) {
   points.set(Math.min(Math.max(timeMs, 0), totalDurationMs), opacity);
