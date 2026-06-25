@@ -1,5 +1,20 @@
 # @aboutty/studio
 
+## 0.3.0
+
+### Minor Changes
+
+- 8e445ea: Add richer frame animation support for terminal output, including per-frame color and text emphasis styling.
+
+  Refresh the built-in templates with more realistic terminal timelines, richer progress output, tables, and command examples.
+
+  Fix SVG text baseline alignment so command output and frame animations render consistently without dropped or shifted characters.
+
+### Patch Changes
+
+- Updated dependencies [8e445ea]
+  - @aboutty/core@0.3.0
+
 ## 0.2.0
 
 ### Minor Changes
