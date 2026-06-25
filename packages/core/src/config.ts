@@ -1,4 +1,5 @@
 export type AbouttyStepType = "command" | "output";
+export type AbouttyCursorStyle = "block" | "outline" | "bar" | "underline";
 
 export interface AbouttyTextSegmentStyle {
   color?: string;
@@ -36,6 +37,12 @@ export interface AbouttyStep {
   typingIntervalMs?: number;
 }
 
+export interface AbouttyCursor {
+  enabled: boolean;
+  style: AbouttyCursorStyle;
+  blinkIntervalMs: number;
+}
+
 export interface AbouttyTheme {
   background: string;
   border: string;
@@ -49,6 +56,7 @@ export interface AbouttyTheme {
   text: string;
   command: string;
   output: string;
+  cursor: string;
   separator?: string;
 }
 
@@ -66,6 +74,7 @@ export interface AbouttyConfig {
   cwd?: string;
   prompt?: string;
   loop?: boolean;
+  cursor?: Partial<AbouttyCursor>;
   stepIntervalMs?: number;
   typingIntervalMs?: number;
   theme?: Partial<AbouttyTheme>;
@@ -85,6 +94,7 @@ export interface ResolvedAbouttyConfig {
   cwd: string;
   prompt: string;
   loop: boolean;
+  cursor: AbouttyCursor;
   stepIntervalMs: number;
   typingIntervalMs: number;
   theme: AbouttyTheme;
@@ -104,6 +114,7 @@ export const defaultTheme: AbouttyTheme = {
   text: "#f8fafc",
   command: "#f8fafc",
   output: "#b8c1cc",
+  cursor: "#f8fafc",
   separator: "#8bd5ca"
 };
 
@@ -118,6 +129,11 @@ export const defaultConfig: ResolvedAbouttyConfig = {
   cwd: "~",
   prompt: "$",
   loop: false,
+  cursor: {
+    enabled: false,
+    style: "block",
+    blinkIntervalMs: 650
+  },
   stepIntervalMs: 350,
   typingIntervalMs: 35,
   theme: defaultTheme,
@@ -129,9 +145,18 @@ export function resolveConfig(config: AbouttyConfig): ResolvedAbouttyConfig {
     ...defaultConfig,
     ...config,
     theme: resolveTheme(config.theme),
+    cursor: resolveCursor(config.cursor),
     stepIntervalMs: config.stepIntervalMs ?? defaultConfig.stepIntervalMs,
     typingIntervalMs: config.typingIntervalMs ?? defaultConfig.typingIntervalMs,
     steps: config.steps
+  };
+}
+
+function resolveCursor(cursor: Partial<AbouttyCursor> | undefined): AbouttyCursor {
+  return {
+    enabled: cursor?.enabled ?? defaultConfig.cursor.enabled,
+    style: cursor?.style ?? defaultConfig.cursor.style,
+    blinkIntervalMs: cursor?.blinkIntervalMs ?? defaultConfig.cursor.blinkIntervalMs
   };
 }
 
@@ -149,6 +174,7 @@ function resolveTheme(theme: Partial<AbouttyTheme> | undefined): AbouttyTheme {
     text: theme?.text ?? defaultTheme.text,
     command: theme?.command ?? theme?.text ?? defaultTheme.command,
     output: theme?.output ?? theme?.text ?? defaultTheme.output,
+    cursor: theme?.cursor ?? theme?.command ?? theme?.text ?? defaultTheme.cursor,
     separator: theme?.usernameSeparator ?? theme?.separator ?? defaultTheme.usernameSeparator
   };
 }

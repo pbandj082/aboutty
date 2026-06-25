@@ -51,7 +51,8 @@ type ThemeField =
   | "cwdSeparator"
   | "cwd"
   | "prompt"
-  | "text";
+  | "text"
+  | "cursor";
 type StepField = "type" | "text" | "cwd" | "delayMs" | "typingIntervalMs";
 type SegmentField =
   | "kind"
@@ -93,8 +94,16 @@ const themeFields: ThemeField[] = [
   "cwdSeparator",
   "cwd",
   "prompt",
-  "text"
+  "text",
+  "cursor"
 ];
+const cursorStyles = ["block", "outline", "bar", "underline"] as const;
+type CursorStyle = (typeof cursorStyles)[number];
+const defaultCursor = {
+  enabled: false,
+  style: "block",
+  blinkIntervalMs: 650
+} as const;
 
 export function createConfigControls(
   target: HTMLElement,
@@ -122,6 +131,27 @@ export function createConfigControls(
         ${numberInput("lineHeight", "Line height")}
         ${numberInput("stepIntervalMs", "Step interval", 0)}
         ${numberInput("typingIntervalMs", "Default typing interval", 0)}
+      </div>
+    </section>
+    <section class="control-section">
+      <h2>Cursor</h2>
+      <div class="settings-grid">
+        <label class="switch-label">
+          <span class="switch-text">Cursor</span>
+          <input type="checkbox" data-cursor-field="enabled" />
+          <span class="switch-track" aria-hidden="true"></span>
+        </label>
+        <label>
+          <span>Cursor style</span>
+          <select data-cursor-field="style">
+            ${cursorStyles.map((style) => `<option value="${style}">${style}</option>`).join("")}
+          </select>
+        </label>
+        <label>
+          <span>Blink interval</span>
+          <input type="number" min="100" step="50" data-cursor-field="blinkIntervalMs" />
+        </label>
+        ${themeColorInput("cursor", "Cursor color")}
       </div>
     </section>
     <section class="control-section">
@@ -165,6 +195,12 @@ export function createConfigControls(
       return;
     }
 
+    if (element instanceof HTMLInputElement && element.dataset.cursorField) {
+      config = readSettings(target, config);
+      onChange(cloneConfig(config));
+      return;
+    }
+
     if (isStepControl(element)) {
       updateStepFromElement(element, config);
       if (element.dataset.stepField === "type") {
@@ -192,6 +228,15 @@ export function createConfigControls(
 
   target.addEventListener("change", (event) => {
     const element = event.target as HTMLElement;
+
+    if (
+      (element instanceof HTMLInputElement || element instanceof HTMLSelectElement) &&
+      element.dataset.cursorField
+    ) {
+      config = readSettings(target, config);
+      onChange(cloneConfig(config));
+      return;
+    }
 
     if (isStepControl(element)) {
       updateStepFromElement(element, config);
@@ -483,6 +528,8 @@ function updateControls(
       input.value = value;
     }
   }
+
+  syncCursorControls(target, config);
 
   renderSteps(stepsRoot, config, editingStepIndex);
 }
@@ -798,7 +845,59 @@ function readSettings(target: HTMLElement, config: AbouttyConfig): AbouttyConfig
     assignThemeString(next, field, input.value);
   }
 
+  assignCursorSettings(target, next);
+
   return next;
+}
+
+function syncCursorControls(target: HTMLElement, config: AbouttyConfig): void {
+  const enabledInput = target.querySelector<HTMLInputElement>('[data-cursor-field="enabled"]');
+  const styleSelect = target.querySelector<HTMLSelectElement>('[data-cursor-field="style"]');
+  const blinkInput = target.querySelector<HTMLInputElement>('[data-cursor-field="blinkIntervalMs"]');
+
+  if (enabledInput) {
+    enabledInput.checked = config.cursor?.enabled ?? defaultCursor.enabled;
+  }
+
+  if (styleSelect) {
+    styleSelect.value = config.cursor?.style ?? defaultCursor.style;
+  }
+
+  if (blinkInput) {
+    blinkInput.value = String(config.cursor?.blinkIntervalMs ?? defaultCursor.blinkIntervalMs);
+  }
+}
+
+function assignCursorSettings(target: HTMLElement, config: AbouttyConfig): void {
+  const enabledInput = target.querySelector<HTMLInputElement>('[data-cursor-field="enabled"]');
+  const styleSelect = target.querySelector<HTMLSelectElement>('[data-cursor-field="style"]');
+  const blinkInput = target.querySelector<HTMLInputElement>('[data-cursor-field="blinkIntervalMs"]');
+  const enabled = enabledInput?.checked ?? defaultCursor.enabled;
+  const style = toCursorStyle(styleSelect?.value);
+  const blinkIntervalMs = blinkInput?.value === ""
+    ? defaultCursor.blinkIntervalMs
+    : Number(blinkInput?.value ?? defaultCursor.blinkIntervalMs);
+
+  if (
+    enabled === defaultCursor.enabled &&
+    style === defaultCursor.style &&
+    blinkIntervalMs === defaultCursor.blinkIntervalMs
+  ) {
+    delete config.cursor;
+    return;
+  }
+
+  config.cursor = {
+    enabled,
+    style,
+    blinkIntervalMs
+  };
+}
+
+function toCursorStyle(value: string | undefined): CursorStyle {
+  return cursorStyles.includes(value as CursorStyle)
+    ? value as CursorStyle
+    : defaultCursor.style;
 }
 
 function updateStepFromElement(element: StepControlElement, config: AbouttyConfig): void {

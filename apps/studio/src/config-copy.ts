@@ -18,6 +18,10 @@ export function cloneConfig(config: AbouttyConfig): AbouttyConfig {
     cloned.theme = { ...config.theme };
   }
 
+  if (config.cursor) {
+    cloned.cursor = { ...config.cursor };
+  }
+
   return cloned;
 }
 

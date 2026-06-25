@@ -162,6 +162,64 @@ describe("renderSvg", () => {
     expect(svg).toContain('style="animation: appear 86400000ms step-end 500ms forwards">a</tspan>');
   });
 
+  it("renders a cursor that follows command input and only blinks while idle", () => {
+    const svg = renderSvg({
+      cursor: {
+        enabled: true,
+        style: "bar",
+        blinkIntervalMs: 500
+      },
+      theme: {
+        cursor: "#ff00ff"
+      },
+      stepIntervalMs: 100,
+      typingIntervalMs: 20,
+      steps: [
+        { type: "command", text: "ab" },
+        { type: "output", typingIntervalMs: 0, text: "ok" }
+      ]
+    });
+
+    expect(svg).toContain("@keyframes aboutty-cursor-blink");
+    expect(svg.match(/animation: aboutty-cursor-blink 500ms step-end 0ms infinite/g)).toHaveLength(2);
+    expect(svg).not.toContain("aboutty-cursor-visible");
+    expect(svg).toContain("86400000ms step-end 0ms forwards");
+    expect(svg).toContain("0.000116% { opacity: 1; }");
+    expect(svg).toContain("0.000139% { opacity: 1; }");
+    expect(svg).toContain('fill="#ff00ff"');
+    expect(svg).toContain('style="animation: appear 86400000ms step-end 100ms forwards">a</tspan>');
+    expect(svg).toContain('style="animation: appear 86400000ms step-end 120ms forwards">b</tspan>');
+    expect(svg).toContain("aboutty-cursor-");
+  });
+
+  it("does not render a command cursor by default", () => {
+    const svg = renderSvg({
+      steps: [{ type: "command", text: "ab" }]
+    });
+
+    expect(svg).not.toContain("aboutty-cursor-blink");
+    expect(svg).not.toContain("aboutty-cursor-");
+  });
+
+  it("renders block, outline, and underline cursor styles", () => {
+    const outlineSvg = renderSvg({
+      cursor: { enabled: true, style: "outline" },
+      steps: [{ type: "command", text: "x" }]
+    });
+    const underlineSvg = renderSvg({
+      cursor: { enabled: true, style: "underline" },
+      steps: [{ type: "command", text: "x" }]
+    });
+    const blockSvg = renderSvg({
+      cursor: { enabled: true, style: "block" },
+      steps: [{ type: "command", text: "x" }]
+    });
+
+    expect(outlineSvg).toContain('fill="none" stroke="#f8fafc"');
+    expect(underlineSvg).toContain('height="1.68" fill="#f8fafc"');
+    expect(blockSvg).toContain('width="8.4" height="14" fill="#f8fafc"');
+  });
+
   it("uses the step interval before every step", () => {
     const svg = renderSvg({
       stepIntervalMs: 500,
@@ -426,6 +484,22 @@ describe("renderSvg", () => {
         ]
       })
     ).toThrow("steps[0].text[0].frames[0].value must be a string");
+  });
+
+  it("rejects invalid cursor settings", () => {
+    expect(() =>
+      renderSvg({
+        cursor: { enabled: true, style: "beam" } as never,
+        steps: [{ type: "command", text: "x" }]
+      })
+    ).toThrow('cursor.style must be "block", "outline", "bar", or "underline"');
+
+    expect(() =>
+      renderSvg({
+        cursor: { enabled: true, blinkIntervalMs: 50 },
+        steps: [{ type: "command", text: "x" }]
+      })
+    ).toThrow("cursor.blinkIntervalMs must be a number greater than or equal to 100");
   });
 
   it("renders looped animation keyframes when loop is enabled", () => {

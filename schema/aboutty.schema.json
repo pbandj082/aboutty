@@ -49,6 +49,22 @@
     "loop": {
       "type": "boolean"
     },
+    "cursor": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "style": {
+          "enum": ["block", "outline", "bar", "underline"]
+        },
+        "blinkIntervalMs": {
+          "type": "number",
+          "minimum": 100
+        }
+      }
+    },
     "stepIntervalMs": {
       "type": "number",
       "minimum": 0
@@ -73,6 +89,7 @@
         "text": { "type": "string" },
         "command": { "type": "string" },
         "output": { "type": "string" },
+        "cursor": { "type": "string" },
         "separator": {
           "type": "string",
           "deprecated": true

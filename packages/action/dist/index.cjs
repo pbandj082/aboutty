@@ -19268,6 +19268,7 @@ var defaultTheme = {
   text: "#f8fafc",
   command: "#f8fafc",
   output: "#b8c1cc",
+  cursor: "#f8fafc",
   separator: "#8bd5ca"
 };
 var defaultConfig = {
@@ -19281,6 +19282,11 @@ var defaultConfig = {
   cwd: "~",
   prompt: "$",
   loop: false,
+  cursor: {
+    enabled: false,
+    style: "block",
+    blinkIntervalMs: 650
+  },
   stepIntervalMs: 350,
   typingIntervalMs: 35,
   theme: defaultTheme,
@@ -19291,9 +19297,17 @@ function resolveConfig(config) {
     ...defaultConfig,
     ...config,
     theme: resolveTheme(config.theme),
+    cursor: resolveCursor(config.cursor),
     stepIntervalMs: config.stepIntervalMs ?? defaultConfig.stepIntervalMs,
     typingIntervalMs: config.typingIntervalMs ?? defaultConfig.typingIntervalMs,
     steps: config.steps
+  };
+}
+function resolveCursor(cursor) {
+  return {
+    enabled: cursor?.enabled ?? defaultConfig.cursor.enabled,
+    style: cursor?.style ?? defaultConfig.cursor.style,
+    blinkIntervalMs: cursor?.blinkIntervalMs ?? defaultConfig.cursor.blinkIntervalMs
   };
 }
 function resolveTheme(theme) {
@@ -19310,6 +19324,7 @@ function resolveTheme(theme) {
     text: theme?.text ?? defaultTheme.text,
     command: theme?.command ?? theme?.text ?? defaultTheme.command,
     output: theme?.output ?? theme?.text ?? defaultTheme.output,
+    cursor: theme?.cursor ?? theme?.command ?? theme?.text ?? defaultTheme.cursor,
     separator: theme?.usernameSeparator ?? theme?.separator ?? defaultTheme.usernameSeparator
   };
 }
@@ -19512,8 +19527,29 @@ function validateConfig(config) {
   if (config.loop !== void 0 && typeof config.loop !== "boolean") {
     errors.push("loop must be a boolean");
   }
+  if (config.cursor !== void 0) {
+    errors.push(...validateCursor(config.cursor));
+  }
   if (config.theme !== void 0) {
     errors.push(...validateTheme(config.theme));
+  }
+  return errors;
+}
+function validateCursor(cursor) {
+  const errors = [];
+  if (!cursor || typeof cursor !== "object" || Array.isArray(cursor)) {
+    errors.push("cursor must be an object");
+    return errors;
+  }
+  const candidate = cursor;
+  if (candidate.enabled !== void 0 && typeof candidate.enabled !== "boolean") {
+    errors.push("cursor.enabled must be a boolean");
+  }
+  if (candidate.style !== void 0 && candidate.style !== "block" && candidate.style !== "outline" && candidate.style !== "bar" && candidate.style !== "underline") {
+    errors.push('cursor.style must be "block", "outline", "bar", or "underline"');
+  }
+  if (candidate.blinkIntervalMs !== void 0 && (typeof candidate.blinkIntervalMs !== "number" || !Number.isFinite(candidate.blinkIntervalMs) || candidate.blinkIntervalMs < 100)) {
+    errors.push("cursor.blinkIntervalMs must be a number greater than or equal to 100");
   }
   return errors;
 }
@@ -19540,6 +19576,7 @@ function validateTheme(theme) {
     "text",
     "command",
     "output",
+    "cursor",
     "separator"
   ]) {
     if (candidate[key] !== void 0 && typeof candidate[key] !== "string") {
@@ -19651,6 +19688,8 @@ var defaultLoopPauseMs = 1200;
 var instantAnimationTiming = "step-end";
 var nonLoopAppearDurationMs = 24 * 60 * 60 * 1e3;
 var monospaceCharacterWidthEm = 0.6;
+var commandCursorGapEm = 0.18;
+var cursorBlinkAnimationName = "aboutty-cursor-blink";
 var textBaselineRatio = 0.8;
 function renderSvg(config) {
   const errors = validateConfig(config);
@@ -19666,12 +19705,16 @@ ${errors.map((error2) => `- ${error2}`).join("\n")}`);
     loopDurationMs: resolved.loop ? getLoopDurationMs(timeline) : void 0,
     nextId: 0
   };
+  if (resolved.cursor.enabled) {
+    animationContext.keyframes.push(createCursorBlinkKeyframes());
+  }
   const lineCount = Math.max(timeline.length, 1);
   const textBaselineOffset = getTextBaselineOffset(resolved.fontSize, resolved.lineHeight);
   const height = chromeHeight + resolved.padding * 2 + lineCount * resolved.lineHeight;
   const text = timeline.map((line, index) => {
     const y = chromeHeight + resolved.padding + textBaselineOffset + index * resolved.lineHeight;
     const fill = line.kind === "command" ? resolved.theme.command : resolved.theme.output;
+    const promptPrefixLength = line.kind === "command" ? getPromptPrefixTextLength(resolved, line.cwd) : 0;
     const prefix = line.kind === "command" ? renderPromptPrefix(resolved, line.cwd, line.startMs, animationContext) : "";
     const contents = renderLineSegments(line.segments, line.contentStartMs, line.typingIntervalMs, animationContext, {
       fallbackFill: fill,
@@ -19679,12 +19722,14 @@ ${errors.map((error2) => `- ${error2}`).join("\n")}`);
       x: resolved.padding,
       y
     });
+    const cursor = line.kind === "command" && resolved.cursor.enabled ? renderCommandCursor(line, resolved, y, promptPrefixLength, timeline[index + 1]?.startMs, animationContext) : "";
     return [
       `<text x="${resolved.padding}" y="${formatNumber(y)}" fill="${fill}" xml:space="preserve">`,
       prefix,
       `${contents.inline}`,
       "</text>",
-      ...contents.overlays
+      ...contents.overlays,
+      cursor
     ].join("");
   }).join("\n");
   return [
@@ -19705,6 +19750,127 @@ ${errors.map((error2) => `- ${error2}`).join("\n")}`);
     "</g>",
     "</svg>"
   ].join("\n");
+}
+function renderCommandCursor(line, config, y, promptPrefixLength, nextLineStartMs, animationContext) {
+  const fallbackEndMs = animationContext.loopDurationMs ?? nonLoopAppearDurationMs;
+  const endMs = nextLineStartMs ?? fallbackEndMs;
+  const spans = createCursorSpans(line, endMs);
+  return spans.map((span) => renderCursorSpan(span, config, y, promptPrefixLength, animationContext)).join("");
+}
+function renderCursorSpan(span, config, y, promptPrefixLength, animationContext) {
+  if (span.endMs <= span.startMs) {
+    return "";
+  }
+  const animationName = `aboutty-cursor-${animationContext.nextId++}`;
+  const animationDurationMs = animationContext.loopDurationMs ?? nonLoopAppearDurationMs;
+  const typedTextGap = span.column > 0 ? config.fontSize * commandCursorGapEm : 0;
+  const x = config.padding + (promptPrefixLength + span.column) * config.fontSize * monospaceCharacterWidthEm + typedTextGap;
+  animationContext.keyframes.push(createCursorVisibilityKeyframes(animationName, span.startMs, span.endMs, animationDurationMs));
+  const fillMode = animationContext.loopDurationMs === void 0 ? "forwards" : "infinite";
+  const cursor = renderCursorShape(config.cursor.style, config.theme.cursor, x, y, config.fontSize, config.cursor.blinkIntervalMs, span.blink);
+  return `<g opacity="0" style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms ${instantAnimationTiming} 0ms ${fillMode}">${cursor}</g>`;
+}
+function renderCursorShape(style, color, x, y, fontSize, blinkIntervalMs, blink) {
+  const characterWidth = fontSize * monospaceCharacterWidthEm;
+  const top = y - fontSize * textBaselineRatio;
+  const height = fontSize;
+  const strokeWidth = Math.max(1, fontSize * 0.08);
+  const thinWidth = Math.max(1.5, fontSize * 0.12);
+  const blinkAnimation = `animation: ${cursorBlinkAnimationName} ${formatNumber(blinkIntervalMs)}ms ${instantAnimationTiming} 0ms infinite`;
+  const base = blink ? [`opacity="1"`, `style="${blinkAnimation}"`] : [`opacity="1"`];
+  if (style === "outline") {
+    return `<rect ${[
+      `x="${formatNumber(x)}"`,
+      `y="${formatNumber(top)}"`,
+      `width="${formatNumber(characterWidth)}"`,
+      `height="${formatNumber(height)}"`,
+      `fill="none"`,
+      `stroke="${escapeXml(color)}"`,
+      `stroke-width="${formatNumber(strokeWidth)}"`,
+      ...base
+    ].join(" ")} />`;
+  }
+  if (style === "bar") {
+    return `<rect ${[
+      `x="${formatNumber(x)}"`,
+      `y="${formatNumber(top)}"`,
+      `width="${formatNumber(thinWidth)}"`,
+      `height="${formatNumber(height)}"`,
+      `fill="${escapeXml(color)}"`,
+      ...base
+    ].join(" ")} />`;
+  }
+  if (style === "underline") {
+    const underlineHeight = thinWidth;
+    return `<rect ${[
+      `x="${formatNumber(x)}"`,
+      `y="${formatNumber(top + height - underlineHeight)}"`,
+      `width="${formatNumber(characterWidth)}"`,
+      `height="${formatNumber(underlineHeight)}"`,
+      `fill="${escapeXml(color)}"`,
+      ...base
+    ].join(" ")} />`;
+  }
+  return `<rect ${[
+    `x="${formatNumber(x)}"`,
+    `y="${formatNumber(top)}"`,
+    `width="${formatNumber(characterWidth)}"`,
+    `height="${formatNumber(height)}"`,
+    `fill="${escapeXml(color)}"`,
+    ...base
+  ].join(" ")} />`;
+}
+function createCursorSpans(line, endMs) {
+  const points = [];
+  let cursorMs = line.contentStartMs;
+  let column = 0;
+  addCursorPoint(points, line.startMs, column, true);
+  for (const segment of line.segments) {
+    if (isFramesSegment(segment)) {
+      addCursorPoint(points, cursorMs, column, false);
+      cursorMs += getSegmentAnimationDurationMs(segment, line.typingIntervalMs);
+      column += getSegmentTextLength(segment);
+      addCursorPoint(points, cursorMs, column, false);
+      continue;
+    }
+    const value = getSegmentValue(segment);
+    const intervalMs = segment.typingIntervalMs ?? line.typingIntervalMs;
+    if (getSegmentRepeat(segment) > 1) {
+      addCursorPoint(points, cursorMs, column, false);
+      cursorMs += getSegmentAnimationDurationMs(segment, line.typingIntervalMs);
+      column += Array.from(value).length;
+      addCursorPoint(points, cursorMs, column, false);
+      continue;
+    }
+    for (const _character of Array.from(value)) {
+      column += 1;
+      addCursorPoint(points, cursorMs, column, false);
+      cursorMs += intervalMs;
+    }
+  }
+  addCursorPoint(points, cursorMs, column, true);
+  addCursorPoint(points, Math.max(endMs, cursorMs), column, true);
+  return points.flatMap((point, index) => {
+    const next = points[index + 1];
+    if (!next || next.timeMs <= point.timeMs) {
+      return [];
+    }
+    return [{
+      blink: point.blink,
+      column: point.column,
+      startMs: point.timeMs,
+      endMs: next.timeMs
+    }];
+  });
+}
+function addCursorPoint(points, timeMs, column, blink) {
+  const last = points.at(-1);
+  if (last && last.timeMs === timeMs) {
+    last.column = column;
+    last.blink = blink;
+    return;
+  }
+  points.push({ blink, timeMs, column });
 }
 function renderPromptPrefix(config, cwd, startMs, animationContext) {
   const animation = ` opacity="0" style="${createAppearAnimation(startMs, animationContext)}"`;
@@ -19906,6 +20072,30 @@ function createAppearAnimation(startMs, animationContext) {
   animationContext.keyframes.push(createAppearKeyframes(animationName, startMs, animationContext.loopDurationMs));
   return `animation: ${animationName} ${formatNumber(animationContext.loopDurationMs)}ms ${instantAnimationTiming} 0ms infinite`;
 }
+function createCursorBlinkKeyframes() {
+  return `@keyframes ${cursorBlinkAnimationName} { 0% { opacity: 1; } 49.999% { opacity: 1; } 50% { opacity: 0; } 100% { opacity: 0; } }`;
+}
+function createCursorVisibilityKeyframes(name, startMs, endMs, totalDurationMs) {
+  const instantMs = Math.min(Math.max(totalDurationMs / 1e5, 1e-3), 1);
+  const points = /* @__PURE__ */ new Map();
+  setOpacityPoint(points, 0, startMs <= 0 ? 1 : 0, totalDurationMs);
+  if (startMs > 0) {
+    setOpacityPoint(points, startMs, 0, totalDurationMs);
+    setOpacityPoint(points, startMs + instantMs, 1, totalDurationMs);
+  }
+  if (endMs < totalDurationMs) {
+    setOpacityPoint(points, endMs, 1, totalDurationMs);
+    setOpacityPoint(points, endMs + instantMs, 0, totalDurationMs);
+    setOpacityPoint(points, totalDurationMs, 0, totalDurationMs);
+  } else {
+    setOpacityPoint(points, totalDurationMs, 1, totalDurationMs);
+  }
+  const keyframes = [...points.entries()].sort(([left], [right]) => left - right).map(([timeMs, opacity]) => {
+    const percent = formatPercent(timeMs / totalDurationMs * 100);
+    return `${percent}% { opacity: ${opacity}; }`;
+  }).join(" ");
+  return `@keyframes ${name} { ${keyframes} }`;
+}
 function createAppearKeyframes(name, startMs, totalDurationMs) {
   const instantMs = Math.max(totalDurationMs / 1e5, 1e-3);
   const points = /* @__PURE__ */ new Map();
@@ -19925,10 +20115,12 @@ function createAppearKeyframes(name, startMs, totalDurationMs) {
 }
 function getLoopDurationMs(timeline) {
   const animationEndMs = timeline.reduce((endMs, line) => {
-    const lineDurationMs = line.segments.reduce((durationMs, segment) => durationMs + getSegmentAnimationDurationMs(segment, line.typingIntervalMs), 0);
-    return Math.max(endMs, line.startMs + lineDurationMs);
+    return Math.max(endMs, getLineContentEndMs(line));
   }, 0);
   return Math.max(animationEndMs + defaultLoopPauseMs, 1);
+}
+function getLineContentEndMs(line) {
+  return line.segments.reduce((endMs, segment) => endMs + getSegmentAnimationDurationMs(segment, line.typingIntervalMs), line.contentStartMs);
 }
 function getTextBaselineOffset(fontSize, lineHeight) {
   return (lineHeight - fontSize) / 2 + fontSize * textBaselineRatio;
@@ -19938,6 +20130,9 @@ function setOpacityPoint(points, timeMs, opacity, totalDurationMs) {
 }
 function formatNumber(value) {
   return Number(value.toFixed(3)).toString();
+}
+function formatPercent(value) {
+  return Number(value.toFixed(6)).toString();
 }
 function createAbsolutePositionAttributes(enabled, x, fontSize, column) {
   if (!enabled) {
@@ -19993,6 +20188,9 @@ function createPromptPrefixParts(config, cwd) {
     return parts;
   }
   return [{ color: config.theme.prompt, value: `${config.prompt} ` }];
+}
+function getPromptPrefixTextLength(config, cwd) {
+  return createPromptPrefixParts(config, cwd).reduce((length, part) => length + Array.from(part.value).length, 0);
 }
 function isNonEmptyString(value) {
   return typeof value === "string" && value.length > 0;
