@@ -1,5 +1,13 @@
 # aboutty-action
 
+## 0.3.1
+
+### Patch Changes
+
+- 67e8f44: Render command prompt prefixes immediately while applying command delays only to typed command text.
+- Updated dependencies [67e8f44]
+  - @aboutty/core@0.3.1
+
 ## 0.3.0
 
 ### Minor Changes
