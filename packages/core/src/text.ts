@@ -1,4 +1,5 @@
 import type {
+  AbouttyFrame,
   AbouttyFramesTextSegment,
   AbouttyText,
   AbouttyTextSegment,
@@ -19,7 +20,9 @@ export function normalizeText(text: AbouttyText): AbouttyTextSegment[] {
   }
 
   return text.map((segment) =>
-    isFramesSegment(segment) ? { ...segment, frames: [...segment.frames] } : { ...segment }
+    isFramesSegment(segment)
+      ? { ...segment, frames: segment.frames.map(cloneFrame) }
+      : { ...segment }
   );
 }
 
@@ -74,14 +77,18 @@ export function expandSegmentValue(segment: AbouttyTextSegment): string {
 
 export function getSegmentValue(segment: AbouttyTextSegment): string {
   if (isFramesSegment(segment)) {
-    return segment.frames.at(-1) ?? "";
+    return getFrameValue(segment.frames.at(-1) ?? "");
   }
 
   return segment.value;
 }
 
-export function getSegmentFrames(segment: AbouttyFramesTextSegment): string[] {
+export function getSegmentFrames(segment: AbouttyFramesTextSegment): Array<string | AbouttyFrame> {
   return segment.frames;
+}
+
+export function getFrameValue(frame: string | AbouttyFrame): string {
+  return typeof frame === "string" ? frame : frame.value;
 }
 
 export function getSegmentFrameIntervalMs(segment: AbouttyFramesTextSegment): number {
@@ -148,13 +155,23 @@ function appendFramesSegment(lines: AbouttyTextSegment[][], segment: AbouttyFram
   }
 }
 
-function splitFrameLines(frame: string): string[] {
-  return frame.split(/\r?\n/);
+function splitFrameLines(frame: string | AbouttyFrame): Array<string | AbouttyFrame> {
+  const lines = getFrameValue(frame).split(/\r?\n/);
+
+  if (typeof frame === "string") {
+    return lines;
+  }
+
+  return lines.map((value) => ({ ...frame, value }));
 }
 
-function getFrameTextLength(frame: string): number {
+function getFrameTextLength(frame: string | AbouttyFrame): number {
   return splitFrameLines(frame).reduce(
-    (length, line) => Math.max(length, Array.from(line).length),
+    (length, line) => Math.max(length, Array.from(getFrameValue(line)).length),
     0
   );
+}
+
+function cloneFrame(frame: string | AbouttyFrame): string | AbouttyFrame {
+  return typeof frame === "string" ? frame : { ...frame };
 }

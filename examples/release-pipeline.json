@@ -1,0 +1,93 @@
+{
+  "$schema": "../schema/aboutty.schema.json",
+  "title": "release",
+  "username": "ship",
+  "usernameSeparator": "@",
+  "hostname": "registry",
+  "cwdSeparator": ":",
+  "cwd": "~",
+  "prompt": "$",
+  "stepIntervalMs": 350,
+  "typingIntervalMs": 24,
+  "theme": {
+    "background": "#111318",
+    "border": "#3a4250",
+    "title": "#f8fafc",
+    "username": "#fbbf24",
+    "usernameSeparator": "#f59e0b",
+    "hostname": "#fca5a5",
+    "cwdSeparator": "#fb7185",
+    "cwd": "#fde68a",
+    "prompt": "#f97316",
+    "text": "#f8fafc",
+    "command": "#fff7ed",
+    "output": "#e5e7eb"
+  },
+  "steps": [
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "   ____      __                    \n  / __ \\___ / /__ ___ ____ ___ ___ \n / /_/ / -_) / -_) _ `(_-</ -_) -_)\n/ .___/\\__/_/\\__/\\_,_/___/\\__/\\__/ \n/_/                                   "
+    },
+    {
+      "type": "command",
+      "text": "pnpm changeset version && pnpm release:dry-run"
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "+-----------------+------------+--------+\n| Package         | Action     | Access |\n+-----------------+------------+--------+\n| @aboutty/core   | publish    | public |\n| @aboutty/cli    | publish    | public |\n| @aboutty/action | tag update | public |\n+-----------------+------------+--------+"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "frames": [
+            {
+              "value": "packing @aboutty/core   ███░░░░░░░░░░░░░ 18%",
+              "color": "#fca5a5"
+            },
+            {
+              "value": "packing @aboutty/cli    ████████░░░░░░░░ 48%",
+              "color": "#fbbf24"
+            },
+            {
+              "value": "packing @aboutty/action █████████████░░░ 82%",
+              "color": "#f59e0b"
+            },
+            {
+              "value": "packing artifacts       ████████████████ 100%",
+              "color": "#86efac",
+              "bold": true
+            }
+          ],
+          "frameIntervalMs": 180,
+          "color": "#fbbf24"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "value": "verifying registry metadata ",
+          "color": "#e5e7eb"
+        },
+        {
+          "frames": ["|", "/", "-", "\\", "ok"],
+          "frameIntervalMs": 110,
+          "color": "#f97316"
+        },
+        {
+          "value": "\n",
+          "color": "#e5e7eb"
+        },
+        {
+          "value": "+----------------+----------+---------+\n| Artifact       | Size     | Result  |\n+----------------+----------+---------+\n| core.tgz       | 11.3 kB  | ready   |\n| cli.tgz        | 8.7 kB   | ready   |\n| action archive | 4.1 kB   | ready   |\n+----------------+----------+---------+",
+          "typingIntervalMs": 0,
+          "color": "#e5e7eb"
+        }
+      ]
+    }
+  ]
+}

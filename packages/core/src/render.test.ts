@@ -144,8 +144,8 @@ describe("renderSvg", () => {
       steps: [{ type: "command", text: "ab", delayMs: 100 }]
     });
 
-    expect(svg).toContain('style="animation: appear 1ms linear 100ms forwards"');
-    expect(svg).toContain('style="animation: appear 1ms linear 140ms forwards"');
+    expect(svg).toContain('style="animation: appear 86400000ms step-end 100ms forwards"');
+    expect(svg).toContain('style="animation: appear 86400000ms step-end 140ms forwards"');
     expect(svg).toContain(">a</tspan>");
     expect(svg).toContain(">b</tspan>");
   });
@@ -160,8 +160,8 @@ describe("renderSvg", () => {
       ]
     });
 
-    expect(svg).toContain('style="animation: appear 1ms linear 500ms forwards">a</tspan>');
-    expect(svg).toContain('style="animation: appear 1ms linear 1000ms forwards">b</tspan>');
+    expect(svg).toContain('style="animation: appear 86400000ms step-end 500ms forwards">a</tspan>');
+    expect(svg).toContain('style="animation: appear 86400000ms step-end 1000ms forwards">b</tspan>');
   });
 
   it("renders multiline segment text for ASCII art", () => {
@@ -185,8 +185,8 @@ describe("renderSvg", () => {
       steps: [{ type: "output", delayMs: 100, typingIntervalMs: 0, text: "a\nb" }]
     });
 
-    expect(svg).toContain('style="animation: appear 1ms linear 100ms forwards">a</tspan>');
-    expect(svg).toContain('style="animation: appear 1ms linear 100ms forwards">b</tspan>');
+    expect(svg).toContain('style="animation: appear 86400000ms step-end 100ms forwards">a</tspan>');
+    expect(svg).toContain('style="animation: appear 86400000ms step-end 100ms forwards">b</tspan>');
     expect(svg).not.toContain("276ms");
   });
 
@@ -223,7 +223,7 @@ describe("renderSvg", () => {
     expect(svg).toContain("@keyframes aboutty-repeat-0");
     expect(svg).toContain("@keyframes aboutty-repeat-1");
     expect(svg).toContain("@keyframes aboutty-repeat-2");
-    expect(svg).toContain('style="animation: aboutty-repeat-0 2400ms linear 170ms forwards"');
+    expect(svg).toContain('style="animation: aboutty-repeat-0 2400ms step-end 170ms forwards"');
     expect(svg).toContain("25.001% { opacity: 0; }");
     expect(svg).toContain("37.5% { opacity: 0; }");
     expect(svg).toContain("37.501% { opacity: 1; }");
@@ -245,13 +245,42 @@ describe("renderSvg", () => {
     });
 
     expect(svg).toContain("@keyframes aboutty-frame-");
-    expect(svg).toContain('<tspan opacity="0"> </tspan>');
+    expect(svg).not.toContain('<tspan opacity="0"> </tspan>');
     expect(svg).toContain('<text x="91.2" y="75.2" fill="#6ee7b7" xml:space="preserve" opacity="0"');
-    expect(svg).toContain('style="animation: aboutty-frame-0 800ms linear 0ms forwards"');
+    expect(svg).toContain('style="animation: aboutty-frame-0 800ms step-end 0ms forwards"');
     expect(svg.split('fill="#6ee7b7"').length - 1).toBe(4);
   });
 
-  it("cycles frame segments through the full SVG loop when repeat is omitted", () => {
+  it("allows individual frames to override segment styles", () => {
+    const svg = renderSvg({
+      stepIntervalMs: 0,
+      typingIntervalMs: 0,
+      steps: [
+        {
+          type: "output",
+          text: [
+            {
+              frames: [
+                "pending",
+                { value: "warning", color: "#facc15", italic: true },
+                { value: "ready", color: "#86efac", bold: true }
+              ],
+              frameIntervalMs: 100,
+              color: "#94a3b8"
+            }
+          ]
+        }
+      ]
+    });
+
+    expect(svg).toContain('fill="#94a3b8"');
+    expect(svg).toContain('fill="#facc15" font-style="italic"');
+    expect(svg).toContain('fill="#86efac" font-weight="700"');
+    expect(svg).toContain(">warning</text>");
+    expect(svg).toContain(">ready</text>");
+  });
+
+  it("freezes the final frame after one pass when loop is enabled", () => {
     const svg = renderSvg({
       loop: true,
       stepIntervalMs: 0,
@@ -264,9 +293,13 @@ describe("renderSvg", () => {
       ]
     });
 
-    expect(svg).toContain('style="animation: aboutty-frame-0 1400ms linear 0ms infinite"');
-    expect(svg).toContain("14.286% { opacity: 0; }");
-    expect(svg).toContain("14.287% { opacity: 1; }");
+    expect(svg).toContain('style="animation: aboutty-frame-0 1400ms step-end 0ms infinite"');
+    expect(svg).toContain(
+      "@keyframes aboutty-frame-0 { 0% { opacity: 1; } 7.143% { opacity: 1; } 7.144% { opacity: 0; } 14.286% { opacity: 0; } 100% { opacity: 0; } }"
+    );
+    expect(svg).toContain(
+      "@keyframes aboutty-frame-1 { 0% { opacity: 0; } 7.143% { opacity: 0; } 7.144% { opacity: 1; } 14.286% { opacity: 1; } 100% { opacity: 1; } }"
+    );
   });
 
   it("uses frame segment duration before following text", () => {
@@ -284,7 +317,9 @@ describe("renderSvg", () => {
       ]
     });
 
-    expect(svg).toContain('style="animation: appear 1ms linear 320ms forwards">d</tspan>');
+    expect(svg).not.toContain('<tspan opacity="0">  </tspan>');
+    expect(svg).toContain('x="40.8" opacity="0" style="animation: appear 86400000ms step-end 320ms forwards">d</tspan>');
+    expect(svg).toContain('style="animation: appear 86400000ms step-end 320ms forwards">d</tspan>');
   });
 
   it("renders multiline frame segments as synchronized visual lines", () => {
@@ -312,7 +347,34 @@ describe("renderSvg", () => {
     expect(svg.match(/@keyframes aboutty-frame-/g)?.length).toBe(4);
     expect(svg).toContain(">aa</text>");
     expect(svg).toContain(">bb</text>");
-    expect(svg).toContain('style="animation: appear 1ms linear 200ms forwards">d</tspan>');
+    expect(svg).toContain('style="animation: appear 86400000ms step-end 200ms forwards">d</tspan>');
+  });
+
+  it("preserves object frame styles across multiline frame rows", () => {
+    const svg = renderSvg({
+      padding: 10,
+      lineHeight: 20,
+      stepIntervalMs: 0,
+      typingIntervalMs: 0,
+      steps: [
+        {
+          type: "output",
+          text: [
+            {
+              frames: [
+                { value: "a\nb", color: "#f87171" },
+                { value: "ok\nok", color: "#86efac", bold: true }
+              ],
+              frameIntervalMs: 100
+            }
+          ]
+        }
+      ]
+    });
+
+    expect(svg.match(/fill="#f87171"/g)?.length).toBe(2);
+    expect(svg.match(/fill="#86efac" font-weight="700"/g)?.length).toBe(2);
+    expect(svg).toContain(">ok</text>");
   });
 
   it("rejects segments that mix value and frames", () => {
@@ -341,6 +403,19 @@ describe("renderSvg", () => {
     ).toThrow("steps[0].text frames segments are only supported for output steps");
   });
 
+  it("rejects invalid frame objects", () => {
+    expect(() =>
+      renderSvg({
+        steps: [
+          {
+            type: "output",
+            text: [{ frames: [{ value: 1 }] } as never]
+          }
+        ]
+      })
+    ).toThrow("steps[0].text[0].frames[0].value must be a string");
+  });
+
   it("renders looped animation keyframes when loop is enabled", () => {
     const svg = renderSvg({
       loop: true,
@@ -351,6 +426,6 @@ describe("renderSvg", () => {
     expect(svg).toContain("@keyframes aboutty-loop-");
     expect(svg).toContain("infinite");
     expect(svg).toContain('style="animation: aboutty-loop-');
-    expect(svg).not.toContain('style="animation: appear 1ms linear 100ms forwards"');
+    expect(svg).not.toContain('style="animation: appear 86400000ms step-end 100ms forwards"');
   });
 });

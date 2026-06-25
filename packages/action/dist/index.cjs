@@ -19327,7 +19327,7 @@ function normalizeText(text) {
   if (typeof text === "string") {
     return [{ value: text }];
   }
-  return text.map((segment) => isFramesSegment(segment) ? { ...segment, frames: [...segment.frames] } : { ...segment });
+  return text.map((segment) => isFramesSegment(segment) ? { ...segment, frames: segment.frames.map(cloneFrame) } : { ...segment });
 }
 function splitTextIntoLineGroups(text) {
   let currentLines = [[]];
@@ -19355,12 +19355,15 @@ function splitTextIntoLineGroups(text) {
 }
 function getSegmentValue(segment) {
   if (isFramesSegment(segment)) {
-    return segment.frames.at(-1) ?? "";
+    return getFrameValue(segment.frames.at(-1) ?? "");
   }
   return segment.value;
 }
 function getSegmentFrames(segment) {
   return segment.frames;
+}
+function getFrameValue(frame) {
+  return typeof frame === "string" ? frame : frame.value;
 }
 function getSegmentFrameIntervalMs(segment) {
   return segment.frameIntervalMs ?? defaultFrameIntervalMs;
@@ -19403,10 +19406,17 @@ function appendFramesSegment(lines, segment) {
   }
 }
 function splitFrameLines(frame) {
-  return frame.split(/\r?\n/);
+  const lines = getFrameValue(frame).split(/\r?\n/);
+  if (typeof frame === "string") {
+    return lines;
+  }
+  return lines.map((value) => ({ ...frame, value }));
 }
 function getFrameTextLength(frame) {
-  return splitFrameLines(frame).reduce((length, line) => Math.max(length, Array.from(line).length), 0);
+  return splitFrameLines(frame).reduce((length, line) => Math.max(length, Array.from(getFrameValue(line)).length), 0);
+}
+function cloneFrame(frame) {
+  return typeof frame === "string" ? frame : { ...frame };
 }
 
 // ../core/dist/timeline.js
@@ -19600,7 +19610,7 @@ function validateText(text, path) {
 function validateFrames(frames, path) {
   const errors = [];
   if (!Array.isArray(frames)) {
-    errors.push(`${path} must be a non-empty string array`);
+    errors.push(`${path} must be a non-empty frame array`);
     return errors;
   }
   if (frames.length === 0) {
@@ -19609,8 +19619,23 @@ function validateFrames(frames, path) {
   }
   for (const [index, frame] of frames.entries()) {
     if (typeof frame !== "string") {
-      errors.push(`${path}[${index}] must be a string`);
-      continue;
+      if (!frame || typeof frame !== "object" || Array.isArray(frame)) {
+        errors.push(`${path}[${index}] must be a string or frame object`);
+        continue;
+      }
+      const candidate = frame;
+      if (typeof candidate.value !== "string") {
+        errors.push(`${path}[${index}].value must be a string`);
+      }
+      if (candidate.color !== void 0 && typeof candidate.color !== "string") {
+        errors.push(`${path}[${index}].color must be a string`);
+      }
+      if (candidate.bold !== void 0 && typeof candidate.bold !== "boolean") {
+        errors.push(`${path}[${index}].bold must be a boolean`);
+      }
+      if (candidate.italic !== void 0 && typeof candidate.italic !== "boolean") {
+        errors.push(`${path}[${index}].italic must be a boolean`);
+      }
     }
   }
   return errors;
@@ -19619,6 +19644,8 @@ function validateFrames(frames, path) {
 // ../core/dist/render.js
 var chromeHeight = 36;
 var defaultLoopPauseMs = 1200;
+var instantAnimationTiming = "step-end";
+var nonLoopAppearDurationMs = 24 * 60 * 60 * 1e3;
 var monospaceCharacterWidthEm = 0.6;
 var textBaselineRatio = 0.8;
 function renderSvg(config) {
@@ -19659,7 +19686,7 @@ ${errors.map((error2) => `- ${error2}`).join("\n")}`);
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${resolved.width}" height="${height}" viewBox="0 0 ${resolved.width} ${height}" role="img" aria-label="${escapeXml(resolved.title)}">`,
     "<style>",
-    "@keyframes appear { to { opacity: 1; } }",
+    "@keyframes appear { from { opacity: 1; } to { opacity: 1; } }",
     ...animationContext.keyframes,
     "text { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; white-space: pre; }",
     "</style>",
@@ -19683,6 +19710,7 @@ function renderPromptPrefix(config, cwd, startMs, animationContext) {
 function renderLineSegments(segments, startMs, typingIntervalMs, animationContext, options) {
   let cursorMs = startMs;
   let column = 0;
+  let usesAbsolutePositioning = false;
   const inline = [];
   const overlays = [];
   for (const segment of segments) {
@@ -19695,6 +19723,7 @@ function renderLineSegments(segments, startMs, typingIntervalMs, animationContex
       overlays.push(...renderedFrame.overlays);
       cursorMs += getSegmentAnimationDurationMs(segment, typingIntervalMs);
       column += getSegmentTextLength(segment);
+      usesAbsolutePositioning = true;
       continue;
     }
     const attributes = createSegmentAttributes(segment);
@@ -19702,7 +19731,7 @@ function renderLineSegments(segments, startMs, typingIntervalMs, animationContex
     const repeat = getSegmentRepeat(segment);
     const value = getSegmentValue(segment);
     if (repeat > 1) {
-      inline.push(renderRepeatingTypewriterSegment(segment, value, cursorMs, intervalMs, animationContext));
+      inline.push(renderRepeatingTypewriterSegment(segment, value, cursorMs, intervalMs, animationContext, usesAbsolutePositioning ? { fontSize: options.fontSize, startColumn: column, x: options.x } : void 0));
       cursorMs += getSegmentAnimationDurationMs(segment, typingIntervalMs);
       column += Array.from(value).length;
       continue;
@@ -19710,6 +19739,7 @@ function renderLineSegments(segments, startMs, typingIntervalMs, animationContex
     for (const character of Array.from(value)) {
       inline.push(`<tspan ${[
         ...attributes,
+        ...createAbsolutePositionAttributes(usesAbsolutePositioning, options.x, options.fontSize, column),
         `opacity="0"`,
         `style="${createAppearAnimation(cursorMs, animationContext)}"`
       ].join(" ")}>${escapeXml(character)}</tspan>`);
@@ -19719,12 +19749,13 @@ function renderLineSegments(segments, startMs, typingIntervalMs, animationContex
   }
   return { inline: inline.join(""), overlays };
 }
-function renderRepeatingTypewriterSegment(segment, value, startMs, intervalMs, animationContext) {
+function renderRepeatingTypewriterSegment(segment, value, startMs, intervalMs, animationContext, position) {
   const attributes = createSegmentAttributes(segment);
   const totalDurationMs = getSegmentAnimationDurationMs(segment, intervalMs);
   if (totalDurationMs <= 0) {
-    return Array.from(value).map((character) => `<tspan ${[
+    return Array.from(value).map((character, characterIndex) => `<tspan ${[
       ...attributes,
+      ...createAbsolutePositionAttributes(position !== void 0, position?.x ?? 0, position?.fontSize ?? 0, (position?.startColumn ?? 0) + characterIndex),
       `opacity="0"`,
       `style="${createAppearAnimation(startMs, animationContext)}"`
     ].join(" ")}>${escapeXml(character)}</tspan>`).join("");
@@ -19738,20 +19769,20 @@ function renderRepeatingTypewriterSegment(segment, value, startMs, intervalMs, a
     }));
     return `<tspan ${[
       ...attributes,
+      ...createAbsolutePositionAttributes(position !== void 0, position?.x ?? 0, position?.fontSize ?? 0, (position?.startColumn ?? 0) + characterIndex),
       `opacity="0"`,
-      `style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms linear ${animationContext.loopDurationMs === void 0 ? `${formatNumber(startMs)}ms forwards` : "0ms infinite"}"`
+      `style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms ${instantAnimationTiming} ${animationContext.loopDurationMs === void 0 ? `${formatNumber(startMs)}ms forwards` : "0ms infinite"}"`
     ].join(" ")}>${escapeXml(character)}</tspan>`;
   }).join("");
 }
 function renderFrameSegment(segment, startMs, animationContext, options) {
   const frames = getSegmentFrames(segment);
-  const attributes = createFrameTextAttributes(segment, options.fallbackFill);
   const intervalMs = getSegmentFrameIntervalMs(segment);
-  const maxFrameLength = getSegmentTextLength(segment);
   const totalDurationMs = getSegmentAnimationDurationMs(segment, intervalMs);
-  const inline = `<tspan opacity="0">${" ".repeat(maxFrameLength)}</tspan>`;
+  const inline = "";
   if (totalDurationMs <= 0) {
-    const finalFrame = padFrame(frames.at(-1) ?? "", maxFrameLength);
+    const finalFrame = frames.at(-1) ?? "";
+    const attributes = createFrameTextAttributes(segment, finalFrame, options.fallbackFill);
     return {
       inline,
       overlays: [`<text ${[
@@ -19761,7 +19792,7 @@ function renderFrameSegment(segment, startMs, animationContext, options) {
         `xml:space="preserve"`,
         `opacity="0"`,
         `style="${createAppearAnimation(startMs, animationContext)}"`
-      ].join(" ")}>${escapeXml(finalFrame)}</text>`]
+      ].join(" ")}>${escapeXml(getFrameValue(finalFrame))}</text>`]
     };
   }
   const animationDurationMs = animationContext.loopDurationMs ?? totalDurationMs;
@@ -19769,10 +19800,10 @@ function renderFrameSegment(segment, startMs, animationContext, options) {
     inline,
     overlays: frames.map((frame, frameIndex) => {
       const animationName = `aboutty-frame-${animationContext.nextId++}`;
+      const attributes = createFrameTextAttributes(segment, frame, options.fallbackFill);
       animationContext.keyframes.push(createFrameKeyframes(animationName, frameIndex, segment, intervalMs, {
         keyframeDurationMs: animationDurationMs,
-        offsetMs: animationContext.loopDurationMs === void 0 ? 0 : startMs,
-        repeatUntilEnd: animationContext.loopDurationMs !== void 0 && segment.repeat === void 0
+        offsetMs: animationContext.loopDurationMs === void 0 ? 0 : startMs
       }));
       return `<text ${[
         `x="${formatNumber(options.x)}"`,
@@ -19780,8 +19811,8 @@ function renderFrameSegment(segment, startMs, animationContext, options) {
         ...attributes,
         `xml:space="preserve"`,
         `opacity="0"`,
-        `style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms linear ${animationContext.loopDurationMs === void 0 ? `${formatNumber(startMs)}ms forwards` : "0ms infinite"}"`
-      ].join(" ")}>${escapeXml(padFrame(frame, maxFrameLength))}</text>`;
+        `style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms ${instantAnimationTiming} ${animationContext.loopDurationMs === void 0 ? `${formatNumber(startMs)}ms forwards` : "0ms infinite"}"`
+      ].join(" ")}>${escapeXml(getFrameValue(frame))}</text>`;
     })
   };
 }
@@ -19825,12 +19856,10 @@ function createFrameKeyframes(name, frameIndex, segment, intervalMs, options = {
   const passDurationMs = frameCount * intervalMs;
   const repeatDelayMs = getSegmentRepeatDelayMs(segment);
   const cycleDurationMs = passDurationMs + repeatDelayMs;
-  const baseSegmentDurationMs = getSegmentAnimationDurationMs(segment, intervalMs);
-  const keyframeDurationMs = options.keyframeDurationMs ?? baseSegmentDurationMs;
+  const segmentDurationMs = getSegmentAnimationDurationMs(segment, intervalMs);
+  const keyframeDurationMs = options.keyframeDurationMs ?? segmentDurationMs;
   const offsetMs = options.offsetMs ?? 0;
-  const remainingDurationMs = Math.max(keyframeDurationMs - offsetMs, 0);
-  const repeat = options.repeatUntilEnd ? Math.max(Math.ceil(remainingDurationMs / Math.max(cycleDurationMs, 1)), 1) : getSegmentRepeat(segment);
-  const segmentDurationMs = options.repeatUntilEnd ? remainingDurationMs : baseSegmentDurationMs;
+  const repeat = getSegmentRepeat(segment);
   const instantMs = Math.max(keyframeDurationMs / 1e5, 1e-3);
   const isLastFrame = frameIndex === frameCount - 1;
   const points = /* @__PURE__ */ new Map();
@@ -19861,17 +19890,17 @@ function createFrameKeyframes(name, frameIndex, segment, intervalMs, options = {
 }
 function createAppearAnimation(startMs, animationContext) {
   if (animationContext.loopDurationMs === void 0) {
-    return `animation: appear 1ms linear ${formatNumber(startMs)}ms forwards`;
+    return `animation: appear ${formatNumber(nonLoopAppearDurationMs)}ms ${instantAnimationTiming} ${formatNumber(startMs)}ms forwards`;
   }
   const cacheKey = formatNumber(startMs);
   const cachedAnimationName = animationContext.appearAnimationsByStartMs.get(cacheKey);
   if (cachedAnimationName) {
-    return `animation: ${cachedAnimationName} ${formatNumber(animationContext.loopDurationMs)}ms linear 0ms infinite`;
+    return `animation: ${cachedAnimationName} ${formatNumber(animationContext.loopDurationMs)}ms ${instantAnimationTiming} 0ms infinite`;
   }
   const animationName = `aboutty-loop-${animationContext.nextId++}`;
   animationContext.appearAnimationsByStartMs.set(cacheKey, animationName);
   animationContext.keyframes.push(createAppearKeyframes(animationName, startMs, animationContext.loopDurationMs));
-  return `animation: ${animationName} ${formatNumber(animationContext.loopDurationMs)}ms linear 0ms infinite`;
+  return `animation: ${animationName} ${formatNumber(animationContext.loopDurationMs)}ms ${instantAnimationTiming} 0ms infinite`;
 }
 function createAppearKeyframes(name, startMs, totalDurationMs) {
   const instantMs = Math.max(totalDurationMs / 1e5, 1e-3);
@@ -19900,17 +19929,17 @@ function getLoopDurationMs(timeline) {
 function getTextBaselineOffset(fontSize, lineHeight) {
   return (lineHeight - fontSize) / 2 + fontSize * textBaselineRatio;
 }
-function getFrameLength(frame) {
-  return Array.from(frame).length;
-}
-function padFrame(frame, characterCount) {
-  return `${frame}${" ".repeat(Math.max(characterCount - getFrameLength(frame), 0))}`;
-}
 function setOpacityPoint(points, timeMs, opacity, totalDurationMs) {
   points.set(Math.min(Math.max(timeMs, 0), totalDurationMs), opacity);
 }
 function formatNumber(value) {
   return Number(value.toFixed(3)).toString();
+}
+function createAbsolutePositionAttributes(enabled, x, fontSize, column) {
+  if (!enabled) {
+    return [];
+  }
+  return [`x="${formatNumber(x + column * fontSize * monospaceCharacterWidthEm)}"`];
 }
 function createSegmentAttributes(segment) {
   const attributes = [];
@@ -19925,12 +19954,13 @@ function createSegmentAttributes(segment) {
   }
   return attributes;
 }
-function createFrameTextAttributes(segment, fallbackFill) {
-  const attributes = [`fill="${escapeXml(segment.color ?? fallbackFill)}"`];
-  if (segment.bold) {
+function createFrameTextAttributes(segment, frame, fallbackFill) {
+  const frameStyle = typeof frame === "string" ? void 0 : frame;
+  const attributes = [`fill="${escapeXml(frameStyle?.color ?? segment.color ?? fallbackFill)}"`];
+  if (frameStyle?.bold ?? segment.bold) {
     attributes.push('font-weight="700"');
   }
-  if (segment.italic) {
+  if (frameStyle?.italic ?? segment.italic) {
     attributes.push('font-style="italic"');
   }
   return attributes;

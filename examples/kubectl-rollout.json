@@ -1,0 +1,89 @@
+{
+  "$schema": "../schema/aboutty.schema.json",
+  "title": "kubectl rollout",
+  "username": "ops",
+  "usernameSeparator": "@",
+  "hostname": "cluster",
+  "cwdSeparator": ":",
+  "cwd": "~",
+  "prompt": "$",
+  "stepIntervalMs": 350,
+  "typingIntervalMs": 28,
+  "theme": {
+    "background": "#07111f",
+    "border": "#1e3a5f",
+    "title": "#bfdbfe",
+    "username": "#38bdf8",
+    "usernameSeparator": "#7dd3fc",
+    "hostname": "#93c5fd",
+    "cwdSeparator": "#60a5fa",
+    "cwd": "#bfdbfe",
+    "prompt": "#0ea5e9",
+    "text": "#e0f2fe",
+    "command": "#dbeafe",
+    "output": "#bae6fd"
+  },
+  "steps": [
+    {
+      "type": "command",
+      "text": "kubectl get deploy,pods -n web"
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "NAME                         READY   UP-TO-DATE   AVAILABLE   AGE\ndeployment.apps/aboutty-web   2/2     2            2           4d\n\nNAME                              READY   STATUS    RESTARTS   AGE\npod/aboutty-web-6bd9d7f8c7-8kw2l   1/1     Running   0          2d\npod/aboutty-web-6bd9d7f8c7-qgm5m   1/1     Running   0          2d"
+    },
+    {
+      "type": "command",
+      "text": "kubectl rollout restart deploy/aboutty-web -n web"
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "deployment.apps/aboutty-web restarted"
+    },
+    {
+      "type": "command",
+      "text": "kubectl rollout status deploy/aboutty-web -n web"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "frames": [
+            "Waiting for deployment \"aboutty-web\" rollout to finish: 0 of 2 updated replicas are available...",
+            "Waiting for deployment \"aboutty-web\" rollout to finish: 1 of 2 updated replicas are available...",
+            "Waiting for deployment \"aboutty-web\" rollout to finish: 2 of 2 updated replicas are available...",
+            "deployment \"aboutty-web\" successfully rolled out"
+          ],
+          "frameIntervalMs": 220,
+          "color": "#38bdf8"
+        }
+      ]
+    },
+    {
+      "type": "command",
+      "text": "kubectl top pods -n web"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "frames": [
+            "collecting metrics |",
+            "collecting metrics /",
+            "collecting metrics -",
+            "collecting metrics ok"
+          ],
+          "frameIntervalMs": 120,
+          "color": "#7dd3fc"
+        },
+        {
+          "value": "\nNAME                              CPU(cores)   MEMORY(bytes)\naboutty-web-7cfc9b8d6c-24j8w       21m          84Mi\naboutty-web-7cfc9b8d6c-kp9dv       18m          79Mi",
+          "typingIntervalMs": 0,
+          "color": "#e0f2fe"
+        }
+      ]
+    }
+  ]
+}

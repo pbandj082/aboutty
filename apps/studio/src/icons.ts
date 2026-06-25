@@ -18,6 +18,15 @@ export function iconButton(iconName: IconName, label: string): string {
   return `${icon(iconName)}<span class="button-label">${label}</span>`;
 }
 
+export function npmLogoLabel(): string {
+  return [
+    '<svg class="npm-logo" viewBox="-20 -20 820 290" aria-hidden="true">',
+    '<path fill="#cb3837" stroke="#cb3837" stroke-linejoin="miter" stroke-width="58" d="M240,250h100v-50h100V0H240V250z M340,50h50v100h-50V50z M480,0v200h100V50h50v150h50V50h50v150h50V0H480z M0,200h100V50h50v150h50V0H0V200z"></path>',
+    '<path fill="#ffffff" d="M240,250h100v-50h100V0H240V250z M340,50h50v100h-50V50z M480,0v200h100V50h50v150h50V50h50v150h50V0H480z M0,200h100V50h50v150h50V0H0V200z"></path>',
+    "</svg>"
+  ].join("");
+}
+
 export function dropdownTriangleIcon(): string {
   return [
     '<svg class="suffix-icon" viewBox="0 0 12 12" aria-hidden="true">',

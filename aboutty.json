@@ -112,38 +112,11 @@
           "bold": true
         },
         {
-          "value": "@aboutty/core    ",
+          "value": "packages        ",
           "color": "#94a3b8"
         },
         {
-          "value": "v0.2.0\n",
-          "color": "#6ee7b7",
-          "bold": true
-        },
-        {
-          "value": "@aboutty/cli     ",
-          "color": "#94a3b8"
-        },
-        {
-          "value": "v0.2.0\n",
-          "color": "#6ee7b7",
-          "bold": true
-        },
-        {
-          "value": "@aboutty/studio  ",
-          "color": "#94a3b8"
-        },
-        {
-          "value": "v0.2.0\n",
-          "color": "#6ee7b7",
-          "bold": true
-        },
-        {
-          "value": "action           ",
-          "color": "#94a3b8"
-        },
-        {
-          "value": "action-v0.2.0\n",
+          "value": "core / cli / studio / action\n",
           "color": "#6ee7b7",
           "bold": true
         },

@@ -223,7 +223,7 @@ function validateFrames(frames: unknown, path: string): string[] {
   const errors: string[] = [];
 
   if (!Array.isArray(frames)) {
-    errors.push(`${path} must be a non-empty string array`);
+    errors.push(`${path} must be a non-empty frame array`);
     return errors;
   }
 
@@ -234,10 +234,29 @@ function validateFrames(frames: unknown, path: string): string[] {
 
   for (const [index, frame] of frames.entries()) {
     if (typeof frame !== "string") {
-      errors.push(`${path}[${index}] must be a string`);
-      continue;
-    }
+      if (!frame || typeof frame !== "object" || Array.isArray(frame)) {
+        errors.push(`${path}[${index}] must be a string or frame object`);
+        continue;
+      }
 
+      const candidate = frame as Record<string, unknown>;
+
+      if (typeof candidate.value !== "string") {
+        errors.push(`${path}[${index}].value must be a string`);
+      }
+
+      if (candidate.color !== undefined && typeof candidate.color !== "string") {
+        errors.push(`${path}[${index}].color must be a string`);
+      }
+
+      if (candidate.bold !== undefined && typeof candidate.bold !== "boolean") {
+        errors.push(`${path}[${index}].bold must be a boolean`);
+      }
+
+      if (candidate.italic !== undefined && typeof candidate.italic !== "boolean") {
+        errors.push(`${path}[${index}].italic must be a boolean`);
+      }
+    }
   }
 
   return errors;

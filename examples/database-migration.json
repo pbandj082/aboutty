@@ -1,0 +1,107 @@
+{
+  "$schema": "../schema/aboutty.schema.json",
+  "title": "migration",
+  "username": "data",
+  "usernameSeparator": "@",
+  "hostname": "primary",
+  "cwdSeparator": ":",
+  "cwd": "~",
+  "prompt": "$",
+  "stepIntervalMs": 350,
+  "typingIntervalMs": 24,
+  "theme": {
+    "background": "#0e141b",
+    "border": "#314155",
+    "title": "#dbeafe",
+    "username": "#67e8f9",
+    "usernameSeparator": "#22d3ee",
+    "hostname": "#93c5fd",
+    "cwdSeparator": "#38bdf8",
+    "cwd": "#bae6fd",
+    "prompt": "#06b6d4",
+    "text": "#e2e8f0",
+    "command": "#f8fafc",
+    "output": "#cbd5e1"
+  },
+  "steps": [
+    {
+      "type": "command",
+      "text": "pnpm prisma migrate deploy"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "frames": [
+            "Prisma schema loaded from prisma/schema.prisma",
+            "Datasource \"db\": PostgreSQL database \"app\", schema \"public\"",
+            "3 migrations found in prisma/migrations"
+          ],
+          "frameIntervalMs": 180,
+          "color": "#93c5fd"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": [
+        {
+          "value": "┌─ migration plan ─────────────────────────┐\n",
+          "color": "#64748b"
+        },
+        {
+          "value": "│ ",
+          "color": "#64748b"
+        },
+        {
+          "value": "+ create table sessions                 ",
+          "color": "#86efac"
+        },
+        {
+          "value": "│\n│ ",
+          "color": "#64748b"
+        },
+        {
+          "value": "~ alter index users_email_key           ",
+          "color": "#facc15"
+        },
+        {
+          "value": "│\n│ ",
+          "color": "#64748b"
+        },
+        {
+          "value": "- drop column users.temp_token           ",
+          "color": "#f87171"
+        },
+        {
+          "value": "│\n└──────────────────────────────────────────┘",
+          "color": "#64748b"
+        }
+      ]
+    },
+    {
+      "type": "command",
+      "text": "psql \"$DATABASE_URL\" -f migrations/20260625_sessions.sql"
+    },
+    {
+      "type": "output",
+      "text": [
+        {
+          "frames": [
+            "applying 20260625_sessions ████░░░░░░░░░░░░ 25%",
+            "applying 20260625_sessions █████████░░░░░░░ 58%",
+            "applying 20260625_sessions ████████████████ 100%"
+          ],
+          "frameIntervalMs": 180,
+          "color": "#67e8f9"
+        }
+      ]
+    },
+    {
+      "type": "output",
+      "typingIntervalMs": 0,
+      "text": "+-------------------+---------+--------+\n| Migration         | Status  | Time   |\n+-------------------+---------+--------+\n| 20260625_sessions | applied | 118ms  |\n| 20260625_indexes  | applied | 47ms   |\n+-------------------+---------+--------+"
+    }
+  ]
+}

@@ -1,5 +1,6 @@
 import {
   type AbouttyConfig,
+  type AbouttyFrame,
   type AbouttyFramesTextSegment,
   type AbouttyTextSegment,
   type AbouttyValueTextSegment,
@@ -8,6 +9,7 @@ import {
 import { escapeXml } from "./escape.js";
 import {
   getSegmentAnimationDurationMs,
+  getFrameValue,
   getSegmentFrameIntervalMs,
   getSegmentFrames,
   getSegmentRepeat,
@@ -21,6 +23,10 @@ import { validateConfig } from "./validate.js";
 
 const chromeHeight = 36;
 const defaultLoopPauseMs = 1200;
+const instantAnimationTiming = "step-end";
+// Keep non-loop text in an active animation instead of relying on fill-mode after a 1ms animation.
+// SVGs embedded as <img> can drop long-finished CSS forwards states.
+const nonLoopAppearDurationMs = 24 * 60 * 60 * 1000;
 const monospaceCharacterWidthEm = 0.6;
 // Approximate alphabetic baseline position within the monospace font box.
 const textBaselineRatio = 0.8;
@@ -95,7 +101,7 @@ export function renderSvg(config: AbouttyConfig): string {
   return [
     `<svg xmlns="http://www.w3.org/2000/svg" width="${resolved.width}" height="${height}" viewBox="0 0 ${resolved.width} ${height}" role="img" aria-label="${escapeXml(resolved.title)}">`,
     "<style>",
-    "@keyframes appear { to { opacity: 1; } }",
+    "@keyframes appear { from { opacity: 1; } to { opacity: 1; } }",
     ...animationContext.keyframes,
     "text { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; white-space: pre; }",
     "</style>",
@@ -135,6 +141,7 @@ function renderLineSegments(
 ): RenderedLineSegments {
   let cursorMs = startMs;
   let column = 0;
+  let usesAbsolutePositioning = false;
   const inline: string[] = [];
   const overlays: string[] = [];
 
@@ -149,6 +156,7 @@ function renderLineSegments(
       overlays.push(...renderedFrame.overlays);
       cursorMs += getSegmentAnimationDurationMs(segment, typingIntervalMs);
       column += getSegmentTextLength(segment);
+      usesAbsolutePositioning = true;
       continue;
     }
 
@@ -158,7 +166,16 @@ function renderLineSegments(
     const value = getSegmentValue(segment);
 
     if (repeat > 1) {
-      inline.push(renderRepeatingTypewriterSegment(segment, value, cursorMs, intervalMs, animationContext));
+      inline.push(renderRepeatingTypewriterSegment(
+        segment,
+        value,
+        cursorMs,
+        intervalMs,
+        animationContext,
+        usesAbsolutePositioning
+          ? { fontSize: options.fontSize, startColumn: column, x: options.x }
+          : undefined
+      ));
       cursorMs += getSegmentAnimationDurationMs(segment, typingIntervalMs);
       column += Array.from(value).length;
       continue;
@@ -168,6 +185,7 @@ function renderLineSegments(
       inline.push(
         `<tspan ${[
           ...attributes,
+          ...createAbsolutePositionAttributes(usesAbsolutePositioning, options.x, options.fontSize, column),
           `opacity="0"`,
           `style="${createAppearAnimation(cursorMs, animationContext)}"`
         ].join(" ")}>${escapeXml(character)}</tspan>`
@@ -185,16 +203,23 @@ function renderRepeatingTypewriterSegment(
   value: string,
   startMs: number,
   intervalMs: number,
-  animationContext: AnimationContext
+  animationContext: AnimationContext,
+  position: { fontSize: number; startColumn: number; x: number } | undefined
 ): string {
   const attributes = createSegmentAttributes(segment);
   const totalDurationMs = getSegmentAnimationDurationMs(segment, intervalMs);
 
   if (totalDurationMs <= 0) {
     return Array.from(value)
-      .map((character) =>
+      .map((character, characterIndex) =>
         `<tspan ${[
           ...attributes,
+          ...createAbsolutePositionAttributes(
+            position !== undefined,
+            position?.x ?? 0,
+            position?.fontSize ?? 0,
+            (position?.startColumn ?? 0) + characterIndex
+          ),
           `opacity="0"`,
           `style="${createAppearAnimation(startMs, animationContext)}"`
         ].join(" ")}>${escapeXml(character)}</tspan>`
@@ -216,8 +241,14 @@ function renderRepeatingTypewriterSegment(
 
       return `<tspan ${[
         ...attributes,
+        ...createAbsolutePositionAttributes(
+          position !== undefined,
+          position?.x ?? 0,
+          position?.fontSize ?? 0,
+          (position?.startColumn ?? 0) + characterIndex
+        ),
         `opacity="0"`,
-        `style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms linear ${animationContext.loopDurationMs === undefined ? `${formatNumber(startMs)}ms forwards` : "0ms infinite"}"`
+        `style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms ${instantAnimationTiming} ${animationContext.loopDurationMs === undefined ? `${formatNumber(startMs)}ms forwards` : "0ms infinite"}"`
       ].join(" ")}>${escapeXml(character)}</tspan>`;
     })
     .join("");
@@ -230,14 +261,13 @@ function renderFrameSegment(
   options: { fallbackFill: string; x: number; y: number }
 ): RenderedLineSegments {
   const frames = getSegmentFrames(segment);
-  const attributes = createFrameTextAttributes(segment, options.fallbackFill);
   const intervalMs = getSegmentFrameIntervalMs(segment);
-  const maxFrameLength = getSegmentTextLength(segment);
   const totalDurationMs = getSegmentAnimationDurationMs(segment, intervalMs);
-  const inline = `<tspan opacity="0">${" ".repeat(maxFrameLength)}</tspan>`;
+  const inline = "";
 
   if (totalDurationMs <= 0) {
-    const finalFrame = padFrame(frames.at(-1) ?? "", maxFrameLength);
+    const finalFrame = frames.at(-1) ?? "";
+    const attributes = createFrameTextAttributes(segment, finalFrame, options.fallbackFill);
 
     return {
       inline,
@@ -248,7 +278,7 @@ function renderFrameSegment(
         `xml:space="preserve"`,
         `opacity="0"`,
         `style="${createAppearAnimation(startMs, animationContext)}"`
-      ].join(" ")}>${escapeXml(finalFrame)}</text>`]
+      ].join(" ")}>${escapeXml(getFrameValue(finalFrame))}</text>`]
     };
   }
 
@@ -258,12 +288,12 @@ function renderFrameSegment(
     inline,
     overlays: frames.map((frame, frameIndex) => {
       const animationName = `aboutty-frame-${animationContext.nextId++}`;
+      const attributes = createFrameTextAttributes(segment, frame, options.fallbackFill);
 
       animationContext.keyframes.push(
         createFrameKeyframes(animationName, frameIndex, segment, intervalMs, {
           keyframeDurationMs: animationDurationMs,
-          offsetMs: animationContext.loopDurationMs === undefined ? 0 : startMs,
-          repeatUntilEnd: animationContext.loopDurationMs !== undefined && segment.repeat === undefined
+          offsetMs: animationContext.loopDurationMs === undefined ? 0 : startMs
         })
       );
 
@@ -273,8 +303,8 @@ function renderFrameSegment(
         ...attributes,
         `xml:space="preserve"`,
         `opacity="0"`,
-        `style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms linear ${animationContext.loopDurationMs === undefined ? `${formatNumber(startMs)}ms forwards` : "0ms infinite"}"`
-      ].join(" ")}>${escapeXml(padFrame(frame, maxFrameLength))}</text>`;
+        `style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms ${instantAnimationTiming} ${animationContext.loopDurationMs === undefined ? `${formatNumber(startMs)}ms forwards` : "0ms infinite"}"`
+      ].join(" ")}>${escapeXml(getFrameValue(frame))}</text>`;
     })
   };
 }
@@ -339,22 +369,16 @@ function createFrameKeyframes(
   frameIndex: number,
   segment: AbouttyFramesTextSegment,
   intervalMs: number,
-  options: { keyframeDurationMs?: number; offsetMs?: number; repeatUntilEnd?: boolean } = {}
+  options: { keyframeDurationMs?: number; offsetMs?: number } = {}
 ): string {
   const frameCount = segment.frames.length;
   const passDurationMs = frameCount * intervalMs;
   const repeatDelayMs = getSegmentRepeatDelayMs(segment);
   const cycleDurationMs = passDurationMs + repeatDelayMs;
-  const baseSegmentDurationMs = getSegmentAnimationDurationMs(segment, intervalMs);
-  const keyframeDurationMs = options.keyframeDurationMs ?? baseSegmentDurationMs;
+  const segmentDurationMs = getSegmentAnimationDurationMs(segment, intervalMs);
+  const keyframeDurationMs = options.keyframeDurationMs ?? segmentDurationMs;
   const offsetMs = options.offsetMs ?? 0;
-  const remainingDurationMs = Math.max(keyframeDurationMs - offsetMs, 0);
-  const repeat = options.repeatUntilEnd
-    ? Math.max(Math.ceil(remainingDurationMs / Math.max(cycleDurationMs, 1)), 1)
-    : getSegmentRepeat(segment);
-  const segmentDurationMs = options.repeatUntilEnd
-    ? remainingDurationMs
-    : baseSegmentDurationMs;
+  const repeat = getSegmentRepeat(segment);
   const instantMs = Math.max(keyframeDurationMs / 100000, 0.001);
   const isLastFrame = frameIndex === frameCount - 1;
   const points = new Map<number, 0 | 1>();
@@ -397,14 +421,14 @@ function createFrameKeyframes(
 
 function createAppearAnimation(startMs: number, animationContext: AnimationContext): string {
   if (animationContext.loopDurationMs === undefined) {
-    return `animation: appear 1ms linear ${formatNumber(startMs)}ms forwards`;
+    return `animation: appear ${formatNumber(nonLoopAppearDurationMs)}ms ${instantAnimationTiming} ${formatNumber(startMs)}ms forwards`;
   }
 
   const cacheKey = formatNumber(startMs);
   const cachedAnimationName = animationContext.appearAnimationsByStartMs.get(cacheKey);
 
   if (cachedAnimationName) {
-    return `animation: ${cachedAnimationName} ${formatNumber(animationContext.loopDurationMs)}ms linear 0ms infinite`;
+    return `animation: ${cachedAnimationName} ${formatNumber(animationContext.loopDurationMs)}ms ${instantAnimationTiming} 0ms infinite`;
   }
 
   const animationName = `aboutty-loop-${animationContext.nextId++}`;
@@ -415,7 +439,7 @@ function createAppearAnimation(startMs: number, animationContext: AnimationConte
     createAppearKeyframes(animationName, startMs, animationContext.loopDurationMs)
   );
 
-  return `animation: ${animationName} ${formatNumber(animationContext.loopDurationMs)}ms linear 0ms infinite`;
+  return `animation: ${animationName} ${formatNumber(animationContext.loopDurationMs)}ms ${instantAnimationTiming} 0ms infinite`;
 }
 
 function createAppearKeyframes(name: string, startMs: number, totalDurationMs: number): string {
@@ -462,14 +486,6 @@ function getTextBaselineOffset(fontSize: number, lineHeight: number): number {
   return (lineHeight - fontSize) / 2 + fontSize * textBaselineRatio;
 }
 
-function getFrameLength(frame: string): number {
-  return Array.from(frame).length;
-}
-
-function padFrame(frame: string, characterCount: number): string {
-  return `${frame}${" ".repeat(Math.max(characterCount - getFrameLength(frame), 0))}`;
-}
-
 function setOpacityPoint(
   points: Map<number, 0 | 1>,
   timeMs: number,
@@ -481,6 +497,19 @@ function setOpacityPoint(
 
 function formatNumber(value: number): string {
   return Number(value.toFixed(3)).toString();
+}
+
+function createAbsolutePositionAttributes(
+  enabled: boolean,
+  x: number,
+  fontSize: number,
+  column: number
+): string[] {
+  if (!enabled) {
+    return [];
+  }
+
+  return [`x="${formatNumber(x + column * fontSize * monospaceCharacterWidthEm)}"`];
 }
 
 function createSegmentAttributes(segment: AbouttyTextSegment): string[] {
@@ -501,14 +530,19 @@ function createSegmentAttributes(segment: AbouttyTextSegment): string[] {
   return attributes;
 }
 
-function createFrameTextAttributes(segment: AbouttyFramesTextSegment, fallbackFill: string): string[] {
-  const attributes = [`fill="${escapeXml(segment.color ?? fallbackFill)}"`];
+function createFrameTextAttributes(
+  segment: AbouttyFramesTextSegment,
+  frame: string | AbouttyFrame,
+  fallbackFill: string
+): string[] {
+  const frameStyle = typeof frame === "string" ? undefined : frame;
+  const attributes = [`fill="${escapeXml(frameStyle?.color ?? segment.color ?? fallbackFill)}"`];
 
-  if (segment.bold) {
+  if (frameStyle?.bold ?? segment.bold) {
     attributes.push('font-weight="700"');
   }
 
-  if (segment.italic) {
+  if (frameStyle?.italic ?? segment.italic) {
     attributes.push('font-style="italic"');
   }
 

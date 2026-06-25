@@ -1,10 +1,12 @@
 import {
   defaultFrameIntervalMs,
   defaultTheme,
+  getFrameValue,
   isFramesSegment,
   normalizeText,
   textToString,
   type AbouttyConfig,
+  type AbouttyFrame,
   type AbouttyFramesTextSegment,
   type AbouttyStepType,
   type AbouttyText,
@@ -55,6 +57,9 @@ type SegmentField =
   | "kind"
   | "value"
   | "frameValue"
+  | "frameColor"
+  | "frameBold"
+  | "frameItalic"
   | "color"
   | "repeat"
   | "repeatDelayMs"
@@ -170,7 +175,10 @@ export function createConfigControls(
     }
 
     if (isSegmentControl(element)) {
-      if (element instanceof HTMLInputElement && element.dataset.segmentField === "color") {
+      if (
+        element instanceof HTMLInputElement &&
+        (element.dataset.segmentField === "color" || element.dataset.segmentField === "frameColor")
+      ) {
         syncColorField(element);
       }
       const shouldRenderSteps = element.dataset.segmentField === "kind";
@@ -195,10 +203,15 @@ export function createConfigControls(
     }
 
     if (isSegmentControl(element)) {
-      if (element instanceof HTMLInputElement && element.dataset.segmentField === "color") {
+      if (
+        element instanceof HTMLInputElement &&
+        (element.dataset.segmentField === "color" || element.dataset.segmentField === "frameColor")
+      ) {
         syncColorField(element);
       }
-      const shouldRenderSteps = element.dataset.segmentField === "kind";
+      const shouldRenderSteps =
+        element.dataset.segmentField === "kind" ||
+        (element.dataset.segmentField === "color" && isCompleteColorInput(element));
       updateSegmentFromElement(element, config);
       if (shouldRenderSteps) {
         renderSteps(stepsRoot, config, editingStepIndex);
@@ -289,7 +302,7 @@ export function createConfigControls(
         const segment = segments[segmentIndex];
 
         if (segment && isFramesSegment(segment)) {
-          segment.frames = [...segment.frames, segment.frames.at(-1) ?? ""];
+          segment.frames = [...segment.frames, cloneFrame(segment.frames.at(-1) ?? "")];
           step.text = segments;
           renderSteps(stepsRoot, config, editingStepIndex);
           onChange(cloneConfig(config));
@@ -704,7 +717,9 @@ function frameValueInput(
     <div class="segment-value">
       <span>Frames</span>
       <div class="frame-list">
-        ${frames.map((frame, frameIndex) => frameInput(stepIndex, segmentIndex, frameIndex, frame, frames.length)).join("")}
+        ${frames.map((frame, frameIndex) =>
+          frameInput(stepIndex, segmentIndex, frameIndex, frame, frames.length, segment.color)
+        ).join("")}
       </div>
       <button class="inline-add-button" type="button" data-action="add-frame" data-step-index="${stepIndex}" data-segment-index="${segmentIndex}">${iconButton("plus", "Add Frame")}</button>
     </div>
@@ -715,8 +730,9 @@ function frameInput(
   stepIndex: number,
   segmentIndex: number,
   frameIndex: number,
-  frame: string,
-  frameCount: number
+  frame: string | AbouttyFrame,
+  frameCount: number,
+  inheritedColor: string | undefined
 ): string {
   const deleteDisabled = frameCount <= 1 ? " disabled" : "";
 
@@ -728,7 +744,21 @@ function frameInput(
           ${icon("x")}
         </button>
       </div>
-      <textarea rows="3" data-step-index="${stepIndex}" data-segment-index="${segmentIndex}" data-frame-index="${frameIndex}" data-segment-field="frameValue" spellcheck="false" aria-label="Frame ${frameIndex + 1}">${escapeHtml(frame)}</textarea>
+      <textarea rows="3" data-step-index="${stepIndex}" data-segment-index="${segmentIndex}" data-frame-index="${frameIndex}" data-segment-field="frameValue" spellcheck="false" aria-label="Frame ${frameIndex + 1}">${escapeHtml(getFrameValue(frame))}</textarea>
+      <div class="frame-options">
+        <label>
+          <span>Frame color</span>
+          ${frameColorInput(stepIndex, segmentIndex, frameIndex, getFrameColor(frame), inheritedColor)}
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox"${getFrameBold(frame) ? " checked" : ""} data-step-index="${stepIndex}" data-segment-index="${segmentIndex}" data-frame-index="${frameIndex}" data-segment-field="frameBold" />
+          <span>Bold</span>
+        </label>
+        <label class="checkbox-label">
+          <input type="checkbox"${getFrameItalic(frame) ? " checked" : ""} data-step-index="${stepIndex}" data-segment-index="${segmentIndex}" data-frame-index="${frameIndex}" data-segment-field="frameItalic" />
+          <span>Italic</span>
+        </label>
+      </div>
     </div>
   `;
 }
@@ -847,8 +877,44 @@ function updateSegmentFromElement(element: SegmentControlElement, config: Aboutt
     const frameIndex = Number(element.dataset.frameIndex);
 
     if (Number.isInteger(frameIndex) && segment.frames[frameIndex] !== undefined) {
-      segment.frames[frameIndex] = element.value;
+      segment.frames[frameIndex] = setFrameValue(segment.frames[frameIndex] ?? "", element.value);
     }
+  }
+
+  if (field === "frameColor" && element instanceof HTMLInputElement && isFramesSegment(segment)) {
+    const frameIndex = Number(element.dataset.frameIndex);
+    const frame = segment.frames[frameIndex];
+
+    if (!Number.isInteger(frameIndex) || frame === undefined) {
+      return;
+    }
+
+    if (element.value === "") {
+      segment.frames[frameIndex] = removeFrameColor(frame);
+    } else if (isColorInputValue(element.value)) {
+      segment.frames[frameIndex] = setFrameColor(frame, element.value.toLowerCase());
+    } else {
+      return;
+    }
+  }
+
+  if (
+    (field === "frameBold" || field === "frameItalic") &&
+    element instanceof HTMLInputElement &&
+    isFramesSegment(segment)
+  ) {
+    const frameIndex = Number(element.dataset.frameIndex);
+    const frame = segment.frames[frameIndex];
+
+    if (!Number.isInteger(frameIndex) || frame === undefined) {
+      return;
+    }
+
+    segment.frames[frameIndex] = setFrameBooleanStyle(
+      frame,
+      field === "frameBold" ? "bold" : "italic",
+      element.checked
+    );
   }
 
   if (field === "color" && element instanceof HTMLInputElement) {
@@ -910,7 +976,7 @@ function createFramesSegment(segment: AbouttyValueTextSegment): AbouttyFramesTex
 function createValueSegment(segment: AbouttyFramesTextSegment): AbouttyValueTextSegment {
   return {
     ...getSharedSegmentFields(segment),
-    value: segment.frames.at(-1) ?? "text"
+    value: getFrameValue(segment.frames.at(-1) ?? "text")
   };
 }
 
@@ -982,6 +1048,84 @@ function segmentColorInput(stepIndex: number, segmentIndex: number, color: strin
       <input class="color-code" type="text" placeholder="default" value="${escapeHtml(codeValue)}" data-step-index="${stepIndex}" data-segment-index="${segmentIndex}" data-segment-field="color" data-color-role="code" spellcheck="false" aria-label="Segment color hex code" />
     </span>
   `;
+}
+
+function frameColorInput(
+  stepIndex: number,
+  segmentIndex: number,
+  frameIndex: number,
+  color: string | undefined,
+  inheritedColor: string | undefined
+): string {
+  const effectiveColor = color ?? inheritedColor;
+  const pickerValue = effectiveColor && isColorInputValue(effectiveColor) ? effectiveColor : defaultTheme.text;
+  const codeValue = effectiveColor ?? "";
+  const placeholder = inheritedColor ?? "default";
+
+  return `
+    <span class="color-field">
+      <input class="color-picker" type="color" value="${escapeHtml(pickerValue)}" data-step-index="${stepIndex}" data-segment-index="${segmentIndex}" data-frame-index="${frameIndex}" data-segment-field="frameColor" data-color-role="picker" aria-label="Frame color picker" />
+      <input class="color-code" type="text" placeholder="${escapeHtml(placeholder)}" value="${escapeHtml(codeValue)}" data-step-index="${stepIndex}" data-segment-index="${segmentIndex}" data-frame-index="${frameIndex}" data-segment-field="frameColor" data-color-role="code" spellcheck="false" aria-label="Frame color hex code" />
+    </span>
+  `;
+}
+
+function getFrameColor(frame: string | AbouttyFrame): string | undefined {
+  return typeof frame === "string" ? undefined : frame.color;
+}
+
+function getFrameBold(frame: string | AbouttyFrame): boolean {
+  return typeof frame === "string" ? false : frame.bold === true;
+}
+
+function getFrameItalic(frame: string | AbouttyFrame): boolean {
+  return typeof frame === "string" ? false : frame.italic === true;
+}
+
+function cloneFrame(frame: string | AbouttyFrame): string | AbouttyFrame {
+  return typeof frame === "string" ? frame : { ...frame };
+}
+
+function setFrameValue(frame: string | AbouttyFrame, value: string): string | AbouttyFrame {
+  return typeof frame === "string" ? value : { ...frame, value };
+}
+
+function setFrameColor(frame: string | AbouttyFrame, color: string): AbouttyFrame {
+  return typeof frame === "string" ? { value: frame, color } : { ...frame, color };
+}
+
+function removeFrameColor(frame: string | AbouttyFrame): string | AbouttyFrame {
+  if (typeof frame === "string") {
+    return frame;
+  }
+
+  const { color: _color, ...nextFrame } = frame;
+
+  return nextFrame.bold === undefined && nextFrame.italic === undefined ? nextFrame.value : nextFrame;
+}
+
+function setFrameBooleanStyle(
+  frame: string | AbouttyFrame,
+  field: "bold" | "italic",
+  enabled: boolean
+): string | AbouttyFrame {
+  if (enabled) {
+    return typeof frame === "string" ? { value: frame, [field]: true } : { ...frame, [field]: true };
+  }
+
+  if (typeof frame === "string") {
+    return frame;
+  }
+
+  const nextFrame = { ...frame };
+
+  delete nextFrame[field];
+
+  return nextFrame.color === undefined &&
+    nextFrame.bold === undefined &&
+    nextFrame.italic === undefined
+    ? nextFrame.value
+    : nextFrame;
 }
 
 function assignOptionalString(config: AbouttyConfig, field: TextField, value: string): void {
@@ -1066,4 +1210,8 @@ function isSegmentControl(element: HTMLElement): element is SegmentControlElemen
     element.dataset.segmentIndex !== undefined &&
     element.dataset.segmentField !== undefined
   );
+}
+
+function isCompleteColorInput(element: HTMLElement): boolean {
+  return element instanceof HTMLInputElement && (element.value === "" || isColorInputValue(element.value));
 }

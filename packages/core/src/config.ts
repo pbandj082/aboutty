@@ -6,6 +6,10 @@ export interface AbouttyTextSegmentStyle {
   italic?: boolean;
 }
 
+export interface AbouttyFrame extends AbouttyTextSegmentStyle {
+  value: string;
+}
+
 export interface AbouttyValueTextSegment extends AbouttyTextSegmentStyle {
   value: string;
   repeat?: number;
@@ -14,7 +18,7 @@ export interface AbouttyValueTextSegment extends AbouttyTextSegmentStyle {
 }
 
 export interface AbouttyFramesTextSegment extends AbouttyTextSegmentStyle {
-  frames: string[];
+  frames: Array<string | AbouttyFrame>;
   frameIntervalMs?: number;
   repeat?: number;
   repeatDelayMs?: number;

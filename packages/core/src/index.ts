@@ -1,5 +1,6 @@
 export type {
   AbouttyConfig,
+  AbouttyFrame,
   AbouttyFramesTextSegment,
   AbouttyStep,
   AbouttyStepType,
@@ -18,6 +19,7 @@ export {
   defaultFrameRepeatDelayMs,
   defaultRepeatDelayMs,
   expandSegmentValue,
+  getFrameValue,
   getSegmentAnimationDurationMs,
   getSegmentFrameIntervalMs,
   getSegmentFrames,

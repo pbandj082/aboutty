@@ -178,7 +178,30 @@
                           "type": "array",
                           "minItems": 1,
                           "items": {
-                            "type": "string"
+                            "oneOf": [
+                              {
+                                "type": "string"
+                              },
+                              {
+                                "type": "object",
+                                "additionalProperties": false,
+                                "required": ["value"],
+                                "properties": {
+                                  "value": {
+                                    "type": "string"
+                                  },
+                                  "color": {
+                                    "type": "string"
+                                  },
+                                  "bold": {
+                                    "type": "boolean"
+                                  },
+                                  "italic": {
+                                    "type": "boolean"
+                                  }
+                                }
+                              }
+                            ]
                           }
                         },
                         "frameIntervalMs": {
