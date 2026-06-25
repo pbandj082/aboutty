@@ -38,6 +38,11 @@ Create `aboutty.json`:
   "cwd": "~",
   "prompt": "$",
   "loop": true,
+  "cursor": {
+    "enabled": true,
+    "style": "block",
+    "blinkIntervalMs": 650
+  },
   "steps": [
     {
       "type": "command",
@@ -168,10 +173,20 @@ Top-level fields:
 | `width` | SVG width in pixels. |
 | `username`, `hostname`, `cwd`, `prompt` | Prompt parts shown before commands. |
 | `loop` | Whether the full SVG animation repeats. |
+| `cursor` | Blinking command cursor settings. |
 | `stepIntervalMs` | Default pause between steps. |
 | `typingIntervalMs` | Default typing interval for text. Use `0` for instant output. |
 | `theme` | Terminal colors. |
 | `steps` | Ordered command/output timeline. |
+
+Cursor styles:
+
+| Style | Description |
+| --- | --- |
+| `block` | Filled block cursor. |
+| `outline` | Outlined block cursor. |
+| `bar` | Vertical bar cursor. |
+| `underline` | Underline cursor. |
 
 Each step has a `type` of `command` or `output` and a `text` value. `text` can be
 a string or an array of styled segments:

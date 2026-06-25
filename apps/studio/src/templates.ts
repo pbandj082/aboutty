@@ -15,7 +15,12 @@ const commonPrompt = {
   usernameSeparator: "@",
   cwdSeparator: ":",
   cwd: "~",
-  stepIntervalMs: 350
+  stepIntervalMs: 350,
+  cursor: {
+    enabled: true,
+    style: "block",
+    blinkIntervalMs: 650
+  }
 } satisfies Partial<AbouttyConfig>;
 
 const defaultPromptTheme = {
@@ -26,7 +31,8 @@ const defaultPromptTheme = {
   cwdSeparator: "#7dd3fc",
   cwd: "#a7f3d0",
   prompt: "#5eead4",
-  text: "#f8fafc"
+  text: "#f8fafc",
+  cursor: "#f8fafc"
 } satisfies NonNullable<AbouttyConfig["theme"]>;
 
 const templateDefinitions: StudioTemplateDefinition[] = [
@@ -46,6 +52,7 @@ const templateDefinitions: StudioTemplateDefinition[] = [
       typingIntervalMs: 35,
       theme: defaultPromptTheme,
       ...commonPrompt,
+      cursor: { enabled: true, style: "bar", blinkIntervalMs: 550 },
       steps: [
         { type: "command", text: "pnpm add -D @aboutty/cli" },
         {
@@ -122,6 +129,7 @@ const templateDefinitions: StudioTemplateDefinition[] = [
         text: "#f4f7f2"
       },
       ...commonPrompt,
+      cursor: { enabled: true, style: "outline", blinkIntervalMs: 700 },
       steps: [
         { type: "command", text: "whoami" },
         {
@@ -207,6 +215,7 @@ const templateDefinitions: StudioTemplateDefinition[] = [
         text: "#e5eefb"
       },
       ...commonPrompt,
+      cursor: { enabled: true, style: "underline", blinkIntervalMs: 420 },
       steps: [
         { type: "command", text: "docker --version" },
         { type: "output", typingIntervalMs: 0, text: "Docker version 27.x" },
@@ -282,6 +291,7 @@ const templateDefinitions: StudioTemplateDefinition[] = [
         text: "#f8fafc"
       },
       ...commonPrompt,
+      cursor: { enabled: true, style: "bar", blinkIntervalMs: 600 },
       steps: [
         { type: "command", text: "git status --short" },
         { type: "output", typingIntervalMs: 0, text: " M README.md\n?? assets/aboutty.svg" },
@@ -359,6 +369,7 @@ const templateDefinitions: StudioTemplateDefinition[] = [
         output: "#86efac"
       },
       ...commonPrompt,
+      cursor: { enabled: true, style: "outline", blinkIntervalMs: 650 },
       steps: [
         {
           type: "output",

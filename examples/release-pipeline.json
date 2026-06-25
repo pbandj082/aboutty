@@ -7,6 +7,11 @@
   "cwdSeparator": ":",
   "cwd": "~",
   "prompt": "$",
+  "cursor": {
+    "enabled": true,
+    "style": "underline",
+    "blinkIntervalMs": 560
+  },
   "stepIntervalMs": 350,
   "typingIntervalMs": 24,
   "theme": {
@@ -21,7 +26,8 @@
     "prompt": "#f97316",
     "text": "#f8fafc",
     "command": "#fff7ed",
-    "output": "#e5e7eb"
+    "output": "#e5e7eb",
+    "cursor": "#fff7ed"
   },
   "steps": [
     {
@@ -74,7 +80,13 @@
           "color": "#e5e7eb"
         },
         {
-          "frames": ["|", "/", "-", "\\", "ok"],
+          "frames": [
+            "|",
+            "/",
+            "-",
+            "\\",
+            "ok"
+          ],
           "frameIntervalMs": 110,
           "color": "#f97316"
         },

@@ -7,6 +7,11 @@
   "cwdSeparator": ":",
   "cwd": "~",
   "prompt": "$",
+  "cursor": {
+    "enabled": true,
+    "style": "outline",
+    "blinkIntervalMs": 650
+  },
   "stepIntervalMs": 350,
   "typingIntervalMs": 28,
   "theme": {
@@ -21,7 +26,8 @@
     "prompt": "#0ea5e9",
     "text": "#e0f2fe",
     "command": "#dbeafe",
-    "output": "#bae6fd"
+    "output": "#bae6fd",
+    "cursor": "#dbeafe"
   },
   "steps": [
     {

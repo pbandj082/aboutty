@@ -8,6 +8,11 @@
   "cwd": "~",
   "prompt": ">",
   "loop": true,
+  "cursor": {
+    "enabled": true,
+    "style": "underline",
+    "blinkIntervalMs": 420
+  },
   "stepIntervalMs": 350,
   "typingIntervalMs": 18,
   "theme": {
@@ -22,7 +27,8 @@
     "prompt": "#15803d",
     "text": "#d1fae5",
     "command": "#bbf7d0",
-    "output": "#86efac"
+    "output": "#86efac",
+    "cursor": "#bbf7d0"
   },
   "steps": [
     {

@@ -59,6 +59,11 @@ const config: AbouttyConfig = {
   fontSize: 14,
   lineHeight: 22,
   loop: true,
+  cursor: {
+    enabled: true,
+    style: "bar",
+    blinkIntervalMs: 600
+  },
   stepIntervalMs: 350,
   typingIntervalMs: 28,
   theme: {
@@ -73,7 +78,8 @@ const config: AbouttyConfig = {
     prompt: "#5eead4",
     text: "#f8fafc",
     command: "#f8fafc",
-    output: "#cbd5e1"
+    output: "#cbd5e1",
+    cursor: "#f8fafc"
   },
   steps: [
     {

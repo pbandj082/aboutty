@@ -76,8 +76,50 @@ export function validateConfig(config: AbouttyConfig): string[] {
     errors.push("loop must be a boolean");
   }
 
+  if (config.cursor !== undefined) {
+    errors.push(...validateCursor(config.cursor));
+  }
+
   if (config.theme !== undefined) {
     errors.push(...validateTheme(config.theme));
+  }
+
+  return errors;
+}
+
+function validateCursor(cursor: unknown): string[] {
+  const errors: string[] = [];
+
+  if (!cursor || typeof cursor !== "object" || Array.isArray(cursor)) {
+    errors.push("cursor must be an object");
+    return errors;
+  }
+
+  const candidate = cursor as Record<string, unknown>;
+
+  if (candidate.enabled !== undefined && typeof candidate.enabled !== "boolean") {
+    errors.push("cursor.enabled must be a boolean");
+  }
+
+  if (
+    candidate.style !== undefined &&
+    candidate.style !== "block" &&
+    candidate.style !== "outline" &&
+    candidate.style !== "bar" &&
+    candidate.style !== "underline"
+  ) {
+    errors.push('cursor.style must be "block", "outline", "bar", or "underline"');
+  }
+
+  if (
+    candidate.blinkIntervalMs !== undefined &&
+    (
+      typeof candidate.blinkIntervalMs !== "number" ||
+      !Number.isFinite(candidate.blinkIntervalMs) ||
+      candidate.blinkIntervalMs < 100
+    )
+  ) {
+    errors.push("cursor.blinkIntervalMs must be a number greater than or equal to 100");
   }
 
   return errors;
@@ -112,6 +154,7 @@ function validateTheme(theme: unknown): string[] {
     "text",
     "command",
     "output",
+    "cursor",
     "separator"
   ] as const) {
     if (candidate[key] !== undefined && typeof candidate[key] !== "string") {
