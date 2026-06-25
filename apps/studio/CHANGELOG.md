@@ -1,5 +1,17 @@
 # @aboutty/studio
 
+## 0.4.0
+
+### Minor Changes
+
+- 8b66f43: Add configurable command cursors with block, outline, bar, and underline styles. Cursors blink while idle and stay solid while command text is being typed.
+
+### Patch Changes
+
+- 7dcee3e: Update the published Studio URL to the latest Irys deployment.
+- Updated dependencies [8b66f43]
+  - @aboutty/core@0.4.0
+
 ## 0.3.1
 
 ### Patch Changes

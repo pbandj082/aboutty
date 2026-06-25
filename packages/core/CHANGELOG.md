@@ -1,5 +1,11 @@
 # @aboutty/core
 
+## 0.4.0
+
+### Minor Changes
+
+- 8b66f43: Add configurable command cursors with block, outline, bar, and underline styles. Cursors blink while idle and stay solid while command text is being typed.
+
 ## 0.3.1
 
 ### Patch Changes
