@@ -1,5 +1,13 @@
 # @aboutty/core
 
+## 0.4.1
+
+### Patch Changes
+
+- e989d27: Fix command cursor spacing so generated SVGs keep text and cursor alignment consistent across browsers.
+
+  Refine the Studio configuration file tabs so hover states use a subtle state layer and the active tab appears connected to the code editor.
+
 ## 0.4.0
 
 ### Minor Changes

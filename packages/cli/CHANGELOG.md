@@ -1,5 +1,12 @@
 # @aboutty/cli
 
+## 0.4.1
+
+### Patch Changes
+
+- Updated dependencies [e989d27]
+  - @aboutty/core@0.4.1
+
 ## 0.4.0
 
 ### Minor Changes

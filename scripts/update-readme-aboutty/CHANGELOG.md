@@ -1,5 +1,12 @@
 # @aboutty/update-readme-aboutty
 
+## 0.0.5
+
+### Patch Changes
+
+- Updated dependencies [e989d27]
+  - @aboutty/core@0.4.1
+
 ## 0.0.4
 
 ### Patch Changes
