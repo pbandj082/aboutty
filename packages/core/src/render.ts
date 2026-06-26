@@ -29,7 +29,6 @@ const instantAnimationTiming = "step-end";
 // SVGs embedded as <img> can drop long-finished CSS forwards states.
 const nonLoopAppearDurationMs = 24 * 60 * 60 * 1000;
 const monospaceCharacterWidthEm = 0.6;
-const commandCursorGapEm = 0.18;
 const cursorBlinkAnimationName = "aboutty-cursor-blink";
 // Approximate alphabetic baseline position within the monospace font box.
 const textBaselineRatio = 0.8;
@@ -133,7 +132,7 @@ export function renderSvg(config: AbouttyConfig): string {
     "<style>",
     "@keyframes appear { from { opacity: 1; } to { opacity: 1; } }",
     ...animationContext.keyframes,
-    "text { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; white-space: pre; }",
+    "text { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-variant-ligatures: none; white-space: pre; }",
     "</style>",
     `<rect width="100%" height="100%" rx="8" fill="${resolved.theme.background}" />`,
     `<rect x="0.5" y="0.5" width="${resolved.width - 1}" height="${height - 1}" rx="7.5" fill="none" stroke="${resolved.theme.border}" />`,
@@ -178,10 +177,7 @@ function renderCursorSpan(
 
   const animationName = `aboutty-cursor-${animationContext.nextId++}`;
   const animationDurationMs = animationContext.loopDurationMs ?? nonLoopAppearDurationMs;
-  const typedTextGap = span.column > 0 ? config.fontSize * commandCursorGapEm : 0;
-  const x = config.padding
-    + (promptPrefixLength + span.column) * config.fontSize * monospaceCharacterWidthEm
-    + typedTextGap;
+  const x = getColumnX(config.padding, config.fontSize, promptPrefixLength + span.column);
 
   animationContext.keyframes.push(
     createCursorVisibilityKeyframes(animationName, span.startMs, span.endMs, animationDurationMs)
@@ -210,7 +206,7 @@ function renderCursorShape(
   blinkIntervalMs: number,
   blink: boolean
 ): string {
-  const characterWidth = fontSize * monospaceCharacterWidthEm;
+  const characterWidth = getCharacterWidth(fontSize);
   const top = y - fontSize * textBaselineRatio;
   const height = fontSize;
   const strokeWidth = Math.max(1, fontSize * 0.08);
@@ -347,7 +343,13 @@ function renderPromptPrefix(
   const parts = createPromptPrefixParts(config, cwd);
 
   return parts
-    .map((part) => `<tspan fill="${part.color}"${animation}>${escapeXml(part.value)}</tspan>`)
+    .map((part) =>
+      `<tspan ${[
+        `fill="${part.color}"`,
+        ...createTextAdvanceAttributes(part.value, config.fontSize),
+        animation.trim()
+      ].join(" ")}>${escapeXml(part.value)}</tspan>`
+    )
     .join("");
 }
 
@@ -368,7 +370,7 @@ function renderLineSegments(
     if (isFramesSegment(segment)) {
       const renderedFrame = renderFrameSegment(segment, cursorMs, animationContext, {
         ...options,
-        x: options.x + column * options.fontSize * monospaceCharacterWidthEm
+        x: getColumnX(options.x, options.fontSize, column)
       });
 
       inline.push(renderedFrame.inline);
@@ -406,6 +408,7 @@ function renderLineSegments(
           ...attributes,
           ...createAbsolutePositionAttributes(usesAbsolutePositioning, options.x, options.fontSize, column),
           `opacity="0"`,
+          ...createTextAdvanceAttributes(character, options.fontSize),
           `style="${createAppearAnimation(cursorMs, animationContext)}"`
         ].join(" ")}>${escapeXml(character)}</tspan>`
       );
@@ -440,6 +443,7 @@ function renderRepeatingTypewriterSegment(
             (position?.startColumn ?? 0) + characterIndex
           ),
           `opacity="0"`,
+          ...createTextAdvanceAttributes(character, position?.fontSize ?? 0),
           `style="${createAppearAnimation(startMs, animationContext)}"`
         ].join(" ")}>${escapeXml(character)}</tspan>`
       )
@@ -467,6 +471,7 @@ function renderRepeatingTypewriterSegment(
           (position?.startColumn ?? 0) + characterIndex
         ),
         `opacity="0"`,
+        ...createTextAdvanceAttributes(character, position?.fontSize ?? 0),
         `style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms ${instantAnimationTiming} ${animationContext.loopDurationMs === undefined ? `${formatNumber(startMs)}ms forwards` : "0ms infinite"}"`
       ].join(" ")}>${escapeXml(character)}</tspan>`;
     })
@@ -477,7 +482,7 @@ function renderFrameSegment(
   segment: AbouttyFramesTextSegment,
   startMs: number,
   animationContext: AnimationContext,
-  options: { fallbackFill: string; x: number; y: number }
+  options: { fallbackFill: string; fontSize: number; x: number; y: number }
 ): RenderedLineSegments {
   const frames = getSegmentFrames(segment);
   const intervalMs = getSegmentFrameIntervalMs(segment);
@@ -495,6 +500,7 @@ function renderFrameSegment(
         `y="${formatNumber(options.y)}"`,
         ...attributes,
         `xml:space="preserve"`,
+        ...createTextAdvanceAttributes(getFrameValue(finalFrame), options.fontSize),
         `opacity="0"`,
         `style="${createAppearAnimation(startMs, animationContext)}"`
       ].join(" ")}>${escapeXml(getFrameValue(finalFrame))}</text>`]
@@ -521,6 +527,7 @@ function renderFrameSegment(
         `y="${formatNumber(options.y)}"`,
         ...attributes,
         `xml:space="preserve"`,
+        ...createTextAdvanceAttributes(getFrameValue(frame), options.fontSize),
         `opacity="0"`,
         `style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms ${instantAnimationTiming} ${animationContext.loopDurationMs === undefined ? `${formatNumber(startMs)}ms forwards` : "0ms infinite"}"`
       ].join(" ")}>${escapeXml(getFrameValue(frame))}</text>`;
@@ -774,7 +781,28 @@ function createAbsolutePositionAttributes(
     return [];
   }
 
-  return [`x="${formatNumber(x + column * fontSize * monospaceCharacterWidthEm)}"`];
+  return [`x="${formatNumber(getColumnX(x, fontSize, column))}"`];
+}
+
+function getCharacterWidth(fontSize: number): number {
+  return fontSize * monospaceCharacterWidthEm;
+}
+
+function getColumnX(x: number, fontSize: number, column: number): number {
+  return x + column * getCharacterWidth(fontSize);
+}
+
+function createTextAdvanceAttributes(value: string, fontSize: number): string[] {
+  const characterCount = Array.from(value).length;
+
+  if (characterCount === 0 || fontSize <= 0) {
+    return [];
+  }
+
+  return [
+    `textLength="${formatNumber(characterCount * getCharacterWidth(fontSize))}"`,
+    `lengthAdjust="spacingAndGlyphs"`
+  ];
 }
 
 function createSegmentAttributes(segment: AbouttyTextSegment): string[] {
