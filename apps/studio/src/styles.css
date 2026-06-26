@@ -528,7 +528,9 @@ h2 {
 }
 
 .tab-button {
-  background: var(--md-sys-color-surface-container-low);
+  --tab-background: var(--md-sys-color-surface-container-low);
+
+  background: var(--tab-background);
   border: 1px solid var(--md-sys-color-outline-variant);
   border-bottom: 0;
   border-radius: 6px 6px 0 0;
@@ -546,16 +548,32 @@ h2 {
   white-space: nowrap;
 }
 
+.tab-button:hover {
+  background:
+    linear-gradient(rgb(255 255 255 / 0.08), rgb(255 255 255 / 0.08)),
+    var(--tab-background);
+  color: var(--md-sys-color-on-surface-variant);
+}
+
 .tab-button.is-active {
-  background: var(--md-sys-color-surface-container-lowest);
+  --tab-background: var(--md-sys-color-surface-container-lowest);
+
+  background: var(--tab-background);
   border-color: var(--md-sys-color-outline-variant);
   border-bottom-color: var(--md-sys-color-surface-container-lowest);
   color: var(--md-sys-color-on-surface);
   z-index: 1;
 }
 
+.tab-button.is-active:hover {
+  background:
+    linear-gradient(rgb(255 255 255 / 0.08), rgb(255 255 255 / 0.08)),
+    var(--tab-background);
+  color: var(--md-sys-color-on-surface);
+}
+
 .tab-button.is-active::after {
-  background: var(--md-sys-color-surface-container-lowest);
+  background: var(--tab-background);
   bottom: -1px;
   content: "";
   height: 2px;
