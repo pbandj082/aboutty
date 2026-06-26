@@ -1,5 +1,12 @@
 # aboutty-action
 
+## 0.4.2
+
+### Patch Changes
+
+- Updated dependencies [59b2eaa]
+  - @aboutty/core@0.4.2
+
 ## 0.4.1
 
 ### Patch Changes
