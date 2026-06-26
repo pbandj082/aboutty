@@ -482,8 +482,10 @@ h2 {
   border-bottom: 0;
   flex-wrap: nowrap;
   gap: 12px;
-  overflow: hidden;
+  overflow: visible;
   padding: 12px var(--pane-inline-padding) 0;
+  position: relative;
+  z-index: 1;
 }
 
 h1 {
@@ -532,7 +534,6 @@ h2 {
 
   background: var(--tab-background);
   border: 1px solid var(--md-sys-color-outline-variant);
-  border-bottom: 0;
   border-radius: 6px 6px 0 0;
   color: var(--md-sys-color-on-surface-variant);
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -544,7 +545,6 @@ h2 {
   padding: 0 14px;
   position: relative;
   text-overflow: ellipsis;
-  top: 1px;
   white-space: nowrap;
 }
 
@@ -560,7 +560,7 @@ h2 {
 
   background: var(--tab-background);
   border-color: var(--md-sys-color-outline-variant);
-  border-bottom-color: var(--md-sys-color-surface-container-lowest);
+  border-bottom-color: var(--tab-background);
   color: var(--md-sys-color-on-surface);
   z-index: 1;
 }
@@ -570,16 +570,6 @@ h2 {
     linear-gradient(rgb(255 255 255 / 0.08), rgb(255 255 255 / 0.08)),
     var(--tab-background);
   color: var(--md-sys-color-on-surface);
-}
-
-.tab-button.is-active::after {
-  background: var(--tab-background);
-  bottom: -1px;
-  content: "";
-  height: 2px;
-  left: 0;
-  position: absolute;
-  right: 0;
 }
 
 .editor-scroll {
@@ -1026,6 +1016,7 @@ h2 {
 
 .code-block {
   display: grid;
+  margin-top: -1px;
   max-width: 100%;
   min-width: 0;
   overflow: hidden;
