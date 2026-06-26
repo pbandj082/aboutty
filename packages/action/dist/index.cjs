@@ -19717,7 +19717,9 @@ ${errors.map((error2) => `- ${error2}`).join("\n")}`);
     const prefix = line.kind === "command" ? renderPromptPrefix(resolved, line.cwd, line.startMs, animationContext) : "";
     const contents = renderLineSegments(line.segments, line.contentStartMs, line.typingIntervalMs, animationContext, {
       fallbackFill: fill,
+      forceAbsolutePositioning: line.kind === "command",
       fontSize: resolved.fontSize,
+      startColumn: promptPrefixLength,
       x: resolved.padding,
       y
     });
@@ -19873,16 +19875,21 @@ function addCursorPoint(points, timeMs, column, blink) {
 function renderPromptPrefix(config, cwd, startMs, animationContext) {
   const animation = ` opacity="0" style="${createAppearAnimation(startMs, animationContext)}"`;
   const parts = createPromptPrefixParts(config, cwd);
-  return parts.map((part) => `<tspan ${[
-    `fill="${part.color}"`,
-    ...createTextAdvanceAttributes(part.value, config.fontSize),
-    animation.trim()
-  ].join(" ")}>${escapeXml(part.value)}</tspan>`).join("");
+  let column = 0;
+  return parts.map((part) => {
+    const rendered = `<tspan ${[
+      `fill="${part.color}"`,
+      ...createColumnPositionAttributes(part.value, config.padding, config.fontSize, column),
+      animation.trim()
+    ].join(" ")}>${escapeXml(part.value)}</tspan>`;
+    column += Array.from(part.value).length;
+    return rendered;
+  }).join("");
 }
 function renderLineSegments(segments, startMs, typingIntervalMs, animationContext, options) {
   let cursorMs = startMs;
-  let column = 0;
-  let usesAbsolutePositioning = false;
+  let column = options.startColumn;
+  let usesAbsolutePositioning = options.forceAbsolutePositioning;
   const inline = [];
   const overlays = [];
   for (const segment of segments) {
@@ -19913,7 +19920,6 @@ function renderLineSegments(segments, startMs, typingIntervalMs, animationContex
         ...attributes,
         ...createAbsolutePositionAttributes(usesAbsolutePositioning, options.x, options.fontSize, column),
         `opacity="0"`,
-        ...createTextAdvanceAttributes(character, options.fontSize),
         `style="${createAppearAnimation(cursorMs, animationContext)}"`
       ].join(" ")}>${escapeXml(character)}</tspan>`);
       cursorMs += intervalMs;
@@ -19930,7 +19936,6 @@ function renderRepeatingTypewriterSegment(segment, value, startMs, intervalMs, a
       ...attributes,
       ...createAbsolutePositionAttributes(position !== void 0, position?.x ?? 0, position?.fontSize ?? 0, (position?.startColumn ?? 0) + characterIndex),
       `opacity="0"`,
-      ...createTextAdvanceAttributes(character, position?.fontSize ?? 0),
       `style="${createAppearAnimation(startMs, animationContext)}"`
     ].join(" ")}>${escapeXml(character)}</tspan>`).join("");
   }
@@ -19945,7 +19950,6 @@ function renderRepeatingTypewriterSegment(segment, value, startMs, intervalMs, a
       ...attributes,
       ...createAbsolutePositionAttributes(position !== void 0, position?.x ?? 0, position?.fontSize ?? 0, (position?.startColumn ?? 0) + characterIndex),
       `opacity="0"`,
-      ...createTextAdvanceAttributes(character, position?.fontSize ?? 0),
       `style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms ${instantAnimationTiming} ${animationContext.loopDurationMs === void 0 ? `${formatNumber(startMs)}ms forwards` : "0ms infinite"}"`
     ].join(" ")}>${escapeXml(character)}</tspan>`;
   }).join("");
@@ -19965,7 +19969,6 @@ function renderFrameSegment(segment, startMs, animationContext, options) {
         `y="${formatNumber(options.y)}"`,
         ...attributes,
         `xml:space="preserve"`,
-        ...createTextAdvanceAttributes(getFrameValue(finalFrame), options.fontSize),
         `opacity="0"`,
         `style="${createAppearAnimation(startMs, animationContext)}"`
       ].join(" ")}>${escapeXml(getFrameValue(finalFrame))}</text>`]
@@ -19986,7 +19989,6 @@ function renderFrameSegment(segment, startMs, animationContext, options) {
         `y="${formatNumber(options.y)}"`,
         ...attributes,
         `xml:space="preserve"`,
-        ...createTextAdvanceAttributes(getFrameValue(frame), options.fontSize),
         `opacity="0"`,
         `style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms ${instantAnimationTiming} ${animationContext.loopDurationMs === void 0 ? `${formatNumber(startMs)}ms forwards` : "0ms infinite"}"`
       ].join(" ")}>${escapeXml(getFrameValue(frame))}</text>`;
@@ -20153,15 +20155,12 @@ function getCharacterWidth(fontSize) {
 function getColumnX(x, fontSize, column) {
   return x + column * getCharacterWidth(fontSize);
 }
-function createTextAdvanceAttributes(value, fontSize) {
-  const characterCount = Array.from(value).length;
-  if (characterCount === 0 || fontSize <= 0) {
+function createColumnPositionAttributes(value, x, fontSize, startColumn) {
+  const positions = Array.from(value).map((_, index) => formatNumber(getColumnX(x, fontSize, startColumn + index)));
+  if (positions.length === 0) {
     return [];
   }
-  return [
-    `textLength="${formatNumber(characterCount * getCharacterWidth(fontSize))}"`,
-    `lengthAdjust="spacingAndGlyphs"`
-  ];
+  return [`x="${positions.join(" ")}"`];
 }
 function createSegmentAttributes(segment) {
   const attributes = [];
