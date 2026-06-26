@@ -192,7 +192,7 @@ describe("renderSvg", () => {
     expect(svg).toContain("aboutty-cursor-");
   });
 
-  it("uses fixed text advances for command text and cursor positioning", () => {
+  it("uses fixed command columns without compressing glyphs", () => {
     const svg = renderSvg({
       cursor: {
         enabled: true,
@@ -207,10 +207,11 @@ describe("renderSvg", () => {
       steps: [{ type: "command", text: "ab" }]
     });
 
-    expect(svg).toContain('textLength="24" lengthAdjust="spacingAndGlyphs" opacity="0" style="animation: appear 86400000ms step-end 0ms forwards">$ </tspan>');
-    expect(svg).toContain('opacity="0" textLength="12" lengthAdjust="spacingAndGlyphs" style="animation: appear 86400000ms step-end 0ms forwards">a</tspan>');
+    expect(svg).toContain('fill="#5eead4" x="10 22" opacity="0" style="animation: appear 86400000ms step-end 0ms forwards">$ </tspan>');
+    expect(svg).toContain('<tspan x="34" opacity="0" style="animation: appear 86400000ms step-end 0ms forwards">a</tspan>');
     expect(svg).toContain('<rect x="58" y="47" width="2.4" height="20" fill="#f8fafc"');
-    expect(svg).not.toContain('x="61.6"');
+    expect(svg).not.toContain("textLength=");
+    expect(svg).not.toContain("lengthAdjust=");
   });
 
   it("does not render a command cursor by default", () => {
@@ -337,7 +338,7 @@ describe("renderSvg", () => {
 
     expect(svg).toContain("@keyframes aboutty-frame-");
     expect(svg).not.toContain('<tspan opacity="0"> </tspan>');
-    expect(svg).toContain('<text x="91.2" y="75.2" fill="#6ee7b7" xml:space="preserve" textLength="8.4" lengthAdjust="spacingAndGlyphs" opacity="0"');
+    expect(svg).toContain('<text x="91.2" y="75.2" fill="#6ee7b7" xml:space="preserve" opacity="0"');
     expect(svg).toContain('style="animation: aboutty-frame-0 800ms step-end 0ms forwards"');
     expect(svg.split('fill="#6ee7b7"').length - 1).toBe(4);
   });
@@ -409,7 +410,7 @@ describe("renderSvg", () => {
     });
 
     expect(svg).not.toContain('<tspan opacity="0">  </tspan>');
-    expect(svg).toContain('x="40.8" opacity="0" textLength="8.4" lengthAdjust="spacingAndGlyphs" style="animation: appear 86400000ms step-end 320ms forwards">d</tspan>');
+    expect(svg).toContain('x="40.8" opacity="0" style="animation: appear 86400000ms step-end 320ms forwards">d</tspan>');
     expect(svg).toContain('style="animation: appear 86400000ms step-end 320ms forwards">d</tspan>');
   });
 
