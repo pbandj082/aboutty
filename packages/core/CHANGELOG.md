@@ -1,5 +1,11 @@
 # @aboutty/core
 
+## 0.4.2
+
+### Patch Changes
+
+- 59b2eaa: Fix iOS SVG text rendering by positioning command text on fixed columns without using textLength or lengthAdjust, while preserving cursor alignment across browsers.
+
 ## 0.4.1
 
 ### Patch Changes
