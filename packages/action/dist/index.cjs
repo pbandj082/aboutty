@@ -19688,7 +19688,6 @@ var defaultLoopPauseMs = 1200;
 var instantAnimationTiming = "step-end";
 var nonLoopAppearDurationMs = 24 * 60 * 60 * 1e3;
 var monospaceCharacterWidthEm = 0.6;
-var commandCursorGapEm = 0.18;
 var cursorBlinkAnimationName = "aboutty-cursor-blink";
 var textBaselineRatio = 0.8;
 function renderSvg(config) {
@@ -19737,7 +19736,7 @@ ${errors.map((error2) => `- ${error2}`).join("\n")}`);
     "<style>",
     "@keyframes appear { from { opacity: 1; } to { opacity: 1; } }",
     ...animationContext.keyframes,
-    "text { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; white-space: pre; }",
+    "text { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-variant-ligatures: none; white-space: pre; }",
     "</style>",
     `<rect width="100%" height="100%" rx="8" fill="${resolved.theme.background}" />`,
     `<rect x="0.5" y="0.5" width="${resolved.width - 1}" height="${height - 1}" rx="7.5" fill="none" stroke="${resolved.theme.border}" />`,
@@ -19763,15 +19762,14 @@ function renderCursorSpan(span, config, y, promptPrefixLength, animationContext)
   }
   const animationName = `aboutty-cursor-${animationContext.nextId++}`;
   const animationDurationMs = animationContext.loopDurationMs ?? nonLoopAppearDurationMs;
-  const typedTextGap = span.column > 0 ? config.fontSize * commandCursorGapEm : 0;
-  const x = config.padding + (promptPrefixLength + span.column) * config.fontSize * monospaceCharacterWidthEm + typedTextGap;
+  const x = getColumnX(config.padding, config.fontSize, promptPrefixLength + span.column);
   animationContext.keyframes.push(createCursorVisibilityKeyframes(animationName, span.startMs, span.endMs, animationDurationMs));
   const fillMode = animationContext.loopDurationMs === void 0 ? "forwards" : "infinite";
   const cursor = renderCursorShape(config.cursor.style, config.theme.cursor, x, y, config.fontSize, config.cursor.blinkIntervalMs, span.blink);
   return `<g opacity="0" style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms ${instantAnimationTiming} 0ms ${fillMode}">${cursor}</g>`;
 }
 function renderCursorShape(style, color, x, y, fontSize, blinkIntervalMs, blink) {
-  const characterWidth = fontSize * monospaceCharacterWidthEm;
+  const characterWidth = getCharacterWidth(fontSize);
   const top = y - fontSize * textBaselineRatio;
   const height = fontSize;
   const strokeWidth = Math.max(1, fontSize * 0.08);
@@ -19875,7 +19873,11 @@ function addCursorPoint(points, timeMs, column, blink) {
 function renderPromptPrefix(config, cwd, startMs, animationContext) {
   const animation = ` opacity="0" style="${createAppearAnimation(startMs, animationContext)}"`;
   const parts = createPromptPrefixParts(config, cwd);
-  return parts.map((part) => `<tspan fill="${part.color}"${animation}>${escapeXml(part.value)}</tspan>`).join("");
+  return parts.map((part) => `<tspan ${[
+    `fill="${part.color}"`,
+    ...createTextAdvanceAttributes(part.value, config.fontSize),
+    animation.trim()
+  ].join(" ")}>${escapeXml(part.value)}</tspan>`).join("");
 }
 function renderLineSegments(segments, startMs, typingIntervalMs, animationContext, options) {
   let cursorMs = startMs;
@@ -19887,7 +19889,7 @@ function renderLineSegments(segments, startMs, typingIntervalMs, animationContex
     if (isFramesSegment(segment)) {
       const renderedFrame = renderFrameSegment(segment, cursorMs, animationContext, {
         ...options,
-        x: options.x + column * options.fontSize * monospaceCharacterWidthEm
+        x: getColumnX(options.x, options.fontSize, column)
       });
       inline.push(renderedFrame.inline);
       overlays.push(...renderedFrame.overlays);
@@ -19911,6 +19913,7 @@ function renderLineSegments(segments, startMs, typingIntervalMs, animationContex
         ...attributes,
         ...createAbsolutePositionAttributes(usesAbsolutePositioning, options.x, options.fontSize, column),
         `opacity="0"`,
+        ...createTextAdvanceAttributes(character, options.fontSize),
         `style="${createAppearAnimation(cursorMs, animationContext)}"`
       ].join(" ")}>${escapeXml(character)}</tspan>`);
       cursorMs += intervalMs;
@@ -19927,6 +19930,7 @@ function renderRepeatingTypewriterSegment(segment, value, startMs, intervalMs, a
       ...attributes,
       ...createAbsolutePositionAttributes(position !== void 0, position?.x ?? 0, position?.fontSize ?? 0, (position?.startColumn ?? 0) + characterIndex),
       `opacity="0"`,
+      ...createTextAdvanceAttributes(character, position?.fontSize ?? 0),
       `style="${createAppearAnimation(startMs, animationContext)}"`
     ].join(" ")}>${escapeXml(character)}</tspan>`).join("");
   }
@@ -19941,6 +19945,7 @@ function renderRepeatingTypewriterSegment(segment, value, startMs, intervalMs, a
       ...attributes,
       ...createAbsolutePositionAttributes(position !== void 0, position?.x ?? 0, position?.fontSize ?? 0, (position?.startColumn ?? 0) + characterIndex),
       `opacity="0"`,
+      ...createTextAdvanceAttributes(character, position?.fontSize ?? 0),
       `style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms ${instantAnimationTiming} ${animationContext.loopDurationMs === void 0 ? `${formatNumber(startMs)}ms forwards` : "0ms infinite"}"`
     ].join(" ")}>${escapeXml(character)}</tspan>`;
   }).join("");
@@ -19960,6 +19965,7 @@ function renderFrameSegment(segment, startMs, animationContext, options) {
         `y="${formatNumber(options.y)}"`,
         ...attributes,
         `xml:space="preserve"`,
+        ...createTextAdvanceAttributes(getFrameValue(finalFrame), options.fontSize),
         `opacity="0"`,
         `style="${createAppearAnimation(startMs, animationContext)}"`
       ].join(" ")}>${escapeXml(getFrameValue(finalFrame))}</text>`]
@@ -19980,6 +19986,7 @@ function renderFrameSegment(segment, startMs, animationContext, options) {
         `y="${formatNumber(options.y)}"`,
         ...attributes,
         `xml:space="preserve"`,
+        ...createTextAdvanceAttributes(getFrameValue(frame), options.fontSize),
         `opacity="0"`,
         `style="animation: ${animationName} ${formatNumber(animationDurationMs)}ms ${instantAnimationTiming} ${animationContext.loopDurationMs === void 0 ? `${formatNumber(startMs)}ms forwards` : "0ms infinite"}"`
       ].join(" ")}>${escapeXml(getFrameValue(frame))}</text>`;
@@ -20138,7 +20145,23 @@ function createAbsolutePositionAttributes(enabled, x, fontSize, column) {
   if (!enabled) {
     return [];
   }
-  return [`x="${formatNumber(x + column * fontSize * monospaceCharacterWidthEm)}"`];
+  return [`x="${formatNumber(getColumnX(x, fontSize, column))}"`];
+}
+function getCharacterWidth(fontSize) {
+  return fontSize * monospaceCharacterWidthEm;
+}
+function getColumnX(x, fontSize, column) {
+  return x + column * getCharacterWidth(fontSize);
+}
+function createTextAdvanceAttributes(value, fontSize) {
+  const characterCount = Array.from(value).length;
+  if (characterCount === 0 || fontSize <= 0) {
+    return [];
+  }
+  return [
+    `textLength="${formatNumber(characterCount * getCharacterWidth(fontSize))}"`,
+    `lengthAdjust="spacingAndGlyphs"`
+  ];
 }
 function createSegmentAttributes(segment) {
   const attributes = [];
